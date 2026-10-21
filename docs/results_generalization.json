@@ -1,0 +1,132 @@
+{
+  "piarena": {
+    "train": 900,
+    "test": 600,
+    "ml_labels": [
+      "P2",
+      "P5",
+      "P6"
+    ],
+    "defenses": {
+      "keyword": {
+        "precision": 0.5714,
+        "recall": 0.0667,
+        "f1": 0.1194,
+        "fpr": 0.05,
+        "asr_after": 0.933,
+        "removed_clean": 0.058
+      },
+      "rules": {
+        "precision": 0.8344,
+        "recall": 0.42,
+        "f1": 0.5588,
+        "fpr": 0.0833,
+        "asr_after": 0.58,
+        "removed_clean": 0.019
+      },
+      "rules+ML(gated)": {
+        "precision": 0.7273,
+        "recall": 0.48,
+        "f1": 0.5783,
+        "fpr": 0.18,
+        "asr_after": 0.52,
+        "removed_clean": 0.026
+      },
+      "binary_clf": {
+        "precision": 0.5052,
+        "recall": 0.9767,
+        "f1": 0.6659,
+        "fpr": 0.9567,
+        "asr_after": 0.023,
+        "removed_clean": 0.972
+      }
+    }
+  },
+  "sep": {
+    "train": 1000,
+    "test": 500,
+    "ml_labels": [
+      "P2",
+      "P3",
+      "P5",
+      "P6"
+    ],
+    "defenses": {
+      "keyword": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "asr_after": 1.0,
+        "removed_clean": 0.0
+      },
+      "rules": {
+        "precision": 0.5,
+        "recall": 0.024,
+        "f1": 0.0458,
+        "fpr": 0.024,
+        "asr_after": 0.976,
+        "removed_clean": 0.007
+      },
+      "rules+ML(gated)": {
+        "precision": 0.5,
+        "recall": 0.024,
+        "f1": 0.0458,
+        "fpr": 0.024,
+        "asr_after": 0.976,
+        "removed_clean": 0.007
+      },
+      "binary_clf": {
+        "precision": 0.8343,
+        "recall": 0.564,
+        "f1": 0.673,
+        "fpr": 0.112,
+        "asr_after": 0.436,
+        "removed_clean": 0.138
+      }
+    }
+  },
+  "bipia": {
+    "train": 1100,
+    "test": 400,
+    "ml_labels": [
+      "P2",
+      "P3",
+      "P6"
+    ],
+    "defenses": {
+      "keyword": {
+        "precision": 0.5,
+        "recall": 0.035,
+        "f1": 0.0654,
+        "fpr": 0.035,
+        "asr_after": 0.965,
+        "removed_clean": 0.051
+      },
+      "rules": {
+        "precision": 0.7222,
+        "recall": 0.26,
+        "f1": 0.3824,
+        "fpr": 0.1,
+        "asr_after": 0.74,
+        "removed_clean": 0.008
+      },
+      "rules+ML(gated)": {
+        "precision": 0.7222,
+        "recall": 0.26,
+        "f1": 0.3824,
+        "fpr": 0.1,
+        "asr_after": 0.74,
+        "removed_clean": 0.008
+      },
+      "binary_clf": {
+        "precision": 0.7627,
+        "recall": 0.225,
+        "f1": 0.3475,
+        "fpr": 0.07,
+        "asr_after": 0.775,
+        "removed_clean": 0.079
+      }
+    }
+  }
+}
