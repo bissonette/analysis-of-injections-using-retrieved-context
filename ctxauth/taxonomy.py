@@ -30,7 +30,7 @@ BASE_TECHNIQUES = tuple(t for t in T if t not in MODIFIERS)
 # Модули проекта (для навигации по коду).
 MODULES: dict[str, str] = {
     "Веб-интерфейс": "ctxauth.ui (не реализован)",
-    "Оркестратор конвейера": "ctxauth.rag.orchestrator",
+    "Оркестратор стенда": "ctxauth.rag.orchestrator",
     "Системный промпт": "ctxauth.rag.prompts",
     "Загрузка и разметка данных": "ctxauth.data.loaders",
     "Разбиение на фрагменты / эмбеддинг": "ctxauth.rag.chunking, ctxauth.rag.embed",
