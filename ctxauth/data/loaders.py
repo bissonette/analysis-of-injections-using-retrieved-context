@@ -70,10 +70,12 @@ def load_sep(path: str, limit: int | None = None, intent: str = "qa") -> list[At
     out: list[AttackSample] = []
     for i, it in enumerate(data):
         q = it.get("system_prompt_clean", "")
-        out.append(AttackSample(query=q, chunk_text=it.get("prompt_instructed", ""),
+        pc, pi = it.get("prompt_clean", ""), it.get("prompt_instructed", "")
+        injected = pi[len(pc):].strip() if pi.startswith(pc) else (it.get("witness") or "")
+        out.append(AttackSample(query=q, chunk_text=pi,
                                 is_injected=True, permission=P.P2_TASK, technique="TK2",
                                 canary=it.get("witness"), intent=intent,
-                                source="sep", meta={"subtask": _sep_subtask(it)}))
+                                source="sep", meta={"subtask": _sep_subtask(it), "injected_task": injected}))
         out.append(AttackSample(query=q, chunk_text=it.get("prompt_clean", ""),
                                 is_injected=False, intent=intent, source="sep",
                                 meta={"category": "clean"}))
@@ -121,7 +123,11 @@ def load_bipia(repo_dir: str, task: str = "email", split: str = "test",
     flat = [(cat, s) for cat, lst in attacks.items() for s in lst]
     for i, ctx in enumerate(contexts):
         c = ctx.get("context", "")
+        if isinstance(c, list):            # BIPIA code: контекст приходит списком строк
+            c = "\n".join(map(str, c))
         q = ctx.get("question", "Answer based on the context.")
+        if isinstance(q, list):
+            q = " ".join(map(str, q))
         out.append(AttackSample(query=q, chunk_text=c, is_injected=False, intent=intent,
                                 source=f"bipia/{task}", meta={"category": "clean"}))
         cat, atk = flat[i % len(flat)]

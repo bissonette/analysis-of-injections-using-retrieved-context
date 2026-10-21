@@ -53,6 +53,33 @@ def _overlap(a: str, b: str) -> float:
     return len(wa & wb) / len(wb) if wb else 0.0
 
 
-def train_authority_scorer(samples: list[AttackSample], **kw) -> MLScorer:
+def train_authority_scorer(samples: list[AttackSample], min_pos: int = 5, **kw) -> MLScorer:
     sents, labels = _sentence_labels(samples)
-    return MLScorer(**kw).fit(sents, labels)
+    return MLScorer(**kw).fit(sents, labels, min_pos=min_pos)
+
+
+def calibrate_thresholds(analyzer, val_samples: list[AttackSample], target_fpr: float = 0.05,
+                         floor: float = 0.5, cap: float = 0.97) -> dict:
+    """Подобрать пороги по каждому полномочию на ВАЛИДАЦИИ (не на тесте).
+
+    Для каждого полномочия берём максимальную заявляемую оценку по чистым валидационным
+    фрагментам и ставим порог так, чтобы доля чистых, превышающих его, была ≤ target_fpr.
+    Возвращает dict {Permission: threshold} для ControllerConfig.thresholds.
+    """
+    import numpy as np
+
+    from ..types import CONTROLLED
+    clean = [s for s in val_samples if not s.is_injected]
+    per_perm: dict = {p: [] for p in CONTROLLED}
+    for s in clean:
+        prof = analyzer.analyze_chunk(s.as_chunk())
+        for p in CONTROLLED:
+            per_perm[p].append(prof.claimed.get(p, 0.0))
+    thr = {}
+    for p, scores in per_perm.items():
+        if not scores:
+            thr[p] = floor
+            continue
+        q = float(np.quantile(scores, 1.0 - target_fpr))
+        thr[p] = min(cap, max(floor, q + 1e-6))
+    return thr

@@ -28,13 +28,17 @@ class MLScorer:
         ])
         self.clf = OneVsRestClassifier(LogisticRegression(C=C, max_iter=2000, class_weight="balanced"))
         self.fitted = False
+        self.trainable: tuple[P, ...] = ()
 
-    def fit(self, sentences: list[str], labels: list[set[P]]) -> "MLScorer":
-        Y = np.array([[int(p in ls) for p in self.labels] for ls in labels])
-        keep = Y.sum(axis=0) > 0
-        if not keep.all():
-            missing = [p.code for p, k in zip(self.labels, keep) if not k]
-            raise ValueError(f"нет положительных примеров для {missing}")
+    def fit(self, sentences: list[str], labels: list[set[P]], min_pos: int = 5) -> "MLScorer":
+        # Обучаемся только на полномочиях, для которых есть достаточно положительных примеров;
+        # для остальных ML просто не даёт оценки (в режиме "max" их закрывают правила).
+        Y_all = np.array([[int(p in ls) for p in self.labels] for ls in labels])
+        counts = Y_all.sum(axis=0)
+        self.trainable = tuple(p for p, c in zip(self.labels, counts) if c >= min_pos)
+        if not self.trainable:
+            raise ValueError("нет полномочий с достаточным числом положительных примеров")
+        Y = np.array([[int(p in ls) for p in self.trainable] for ls in labels])
         X = self.features.fit_transform(sentences)
         self.clf.fit(X, Y)
         self.fitted = True
@@ -43,8 +47,14 @@ class MLScorer:
     def predict(self, sentences: list[str]) -> list[dict[P, float]]:
         if not sentences:
             return []
-        proba = self.clf.predict_proba(self.features.transform(sentences))
-        return [{p: float(row[j]) for j, p in enumerate(self.labels)} for row in proba]
+        import numpy as np
+
+        proba = np.asarray(self.clf.predict_proba(self.features.transform(sentences)))
+        # Единственное обучаемое полномочие: OneVsRestClassifier возвращает (n, 2)
+        # (столбцы P(класс=0), P(класс=1)) вместо (n, 1) — берём вероятность положительного класса.
+        if len(self.trainable) == 1 and proba.shape[1] == 2:
+            proba = proba[:, 1:2]
+        return [{p: float(row[j]) for j, p in enumerate(self.trainable)} for row in proba]
 
     def save(self, path: str | Path) -> None:
         Path(path).parent.mkdir(parents=True, exist_ok=True)

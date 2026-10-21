@@ -33,11 +33,15 @@ class AuthorityAnalyzer:
     """mode: 'rules' | 'ml' | 'max' | 'mean' — способ комбинирования скореров."""
 
     def __init__(self, ml: MLScorer | None = None, rules: RuleScorer | None = None,
-                 mode: str = "max", deobfuscate: bool = True, hidden_boost: float = 0.2):
-        if mode in ("ml", "max", "mean") and ml is None:
+                 mode: str = "max", deobfuscate: bool = True, hidden_boost: float = 0.2,
+                 gate: float = 0.8, rule_floor: float = 0.2):
+        if mode in ("ml", "max", "mean", "gated") and ml is None:
             raise ValueError(f"режим {mode} требует обученный MLScorer")
         self.ml, self.rules = ml, rules or RuleScorer()
         self.mode, self.deobfuscate, self.hidden_boost = mode, deobfuscate, hidden_boost
+        # для режима "gated": ML усиливает правила, но в одиночку (когда правила молчат)
+        # учитывается только при уверенности ≥ gate — это снижает ложные вне распределения.
+        self.gate, self.rule_floor = gate, rule_floor
 
     # --- оценка набора «сырых» предложений ------------------------------------------------
     def score_sentences(self, raw: list[str]) -> list[SentenceEvidence]:
@@ -54,14 +58,18 @@ class AuthorityAnalyzer:
             scores = {}
             for p in CONTROLLED:
                 rv = r.get(p, 0.0)
-                mv = m[p] if m is not None else 0.0
+                mv = m.get(p, 0.0) if m is not None else 0.0
                 if self.mode == "rules":
                     v = rv
                 elif self.mode == "ml":
                     v = mv
                 elif self.mode == "mean":
                     v = 0.5 * (rv + mv)
-                else:
+                elif self.mode == "gated":
+                    # правила сработали → ML может подтвердить/усилить; правила молчат →
+                    # ML учитывается только при высокой уверенности (gate).
+                    v = max(rv, mv) if rv >= self.rule_floor else (mv if mv >= self.gate else 0.0)
+                else:  # max
                     v = max(rv, mv)
                 scores[p] = v
             flags = list(n.flags) + rflags
