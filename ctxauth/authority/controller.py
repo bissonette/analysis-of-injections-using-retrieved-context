@@ -13,7 +13,7 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from ..text import domain_allowed, split_sentences, url_domain
+from ..text import domain_allowed, normalize, split_sentences, url_domain
 from ..tools_meta import EXTERNAL_TOOLS
 from ..types import (CONTROLLED, Action, AuthorityProfile, Chunk, ChunkDecision, FilterResult,
                      RequestPolicy, SentenceEvidence, Violation)
@@ -104,7 +104,10 @@ class ContextAuthorityController:
                 continue
             bad_idx = {k for k, vs in enumerate(cv) if vs}
             ratio = len(bad_idx) / max(1, len(ss))
-            hidden = any(_HIDDEN & set(ce[k].flags) for k in bad_idx)
+            # скрытую разметку ищем и на уровне всего фрагмента: разбиение на предложения
+            # может разорвать <!-- ... --> между предложениями и потерять флаг.
+            chunk_hidden = bool(_HIDDEN & set(normalize(c.text).flags))
+            hidden = chunk_hidden or any(_HIDDEN & set(ce[k].flags) for k in bad_idx)
             if (not self.config.sanitize or ratio > self.config.sanitize_max_ratio
                     or (hidden and self.config.block_on_hidden)):
                 decisions.append(ChunkDecision(c, Action.BLOCK, profile, all_v))
