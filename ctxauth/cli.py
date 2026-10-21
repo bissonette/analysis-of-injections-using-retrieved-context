@@ -1,6 +1,6 @@
-"""Командная строка стенда (К13).
+"""Командная строка проекта.
 
-  python -m ctxauth demo                       — один запрос через стенд (офлайн-LLM)
+  python -m ctxauth demo                       — один запрос через конвейер (офлайн-LLM)
   python -m ctxauth eval  --ext /path/to/ext   — прогон защит по бенчмаркам, метрики в JSON
   python -m ctxauth fpr                         — ложные срабатывания на встроенном корпусе
   python -m ctxauth train-clf --ext ... --out model.pkl   — обучить бинарный детектор

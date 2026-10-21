@@ -9,7 +9,7 @@ SciFact, NFCorpus) — см. ctxauth.data.loaders. Встроенный корп
   style_guide — правила оформления текстов (притязание на форму, но адресованное авторам);
   runbook     — регламенты с операционными шагами.
 Категории manual/security/email/style_guide/runbook — «трудные» безопасные документы
-(источник ложных срабатываний, УБИ-С10).
+(источник ложных срабатываний).
 """
 from __future__ import annotations
 

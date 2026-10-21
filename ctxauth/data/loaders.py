@@ -1,4 +1,4 @@
-"""Загрузчики внешних бенчмарков → единый формат AttackSample с разметкой по полномочиям П2–П6.
+"""Загрузчики внешних бенчмарков → единый формат AttackSample с разметкой по виду навязываемого влияния.
 
 ВАЖНО: загрузчики только ЧИТАЮТ уже скачанные файлы бенчмарков и переводят их в общий формат.
 Тексты инъекций берутся из самих файлов бенчмарка (поля context/injected_task/attack_str),
@@ -20,15 +20,15 @@ from .sample_io import AttackSample  # re-export shim
 # ---- PIArena ---------------------------------------------------------------------------------
 # datasets/*_rag.json, *_long.json: поля target_inst, context, injected_task, category.
 PIARENA_CATEGORY_PERM = {
-    "phishing_injection": P.P6_FORMAT_CHANNEL,      # вставка ссылки, уводящей пользователя
-    "content_promotion": P.P6_FORMAT_CHANNEL,       # навязывание рекламного контента
-    "access_denial": P.P3_INSTRUCTIONS,             # подмена правил обработки («откажи в доступе»)
-    "infrastructure_failure": P.P3_INSTRUCTIONS,    # ложное служебное сообщение о сбое
-    "knowledge_corruption": P.P1_CONTENT,           # искажение фактов — ВНЕ области метода (П1)
+    "phishing_injection": P.FORMAT,      # вставка ссылки, уводящей пользователя
+    "content_promotion": P.FORMAT,       # навязывание рекламного контента
+    "access_denial": P.INSTRUCTIONS,             # подмена правил обработки («откажи в доступе»)
+    "infrastructure_failure": P.INSTRUCTIONS,    # ложное служебное сообщение о сбое
+    "knowledge_corruption": P.CONTENT,           # искажение фактов — вне области метода (это content)
 }
 PIARENA_CATEGORY_TECH = {
-    "phishing_injection": "TK6", "content_promotion": "TK7",
-    "access_denial": "TK1", "infrastructure_failure": "TK3", "knowledge_corruption": "TK2",
+    "phishing_injection": "exfiltration", "content_promotion": "content_insert",
+    "access_denial": "override", "infrastructure_failure": "fake_system", "knowledge_corruption": "task_swap",
 }
 
 
@@ -51,7 +51,7 @@ def load_piarena(path: str, intent: str = "qa", limit: int | None = None,
         out.append(AttackSample(
             query=it.get("target_inst", "")[:300] or "Answer the question based on the context.",
             chunk_text=poisoned, is_injected=is_inj,
-            permission=perm if perm != P.P1_CONTENT else None,
+            permission=perm if perm != P.CONTENT else None,
             technique=PIARENA_CATEGORY_TECH.get(cat), intent=intent,
             source=f"piarena/{name}", meta={"category": cat, "injected_task": inj}))
         # чистый вариант того же контекста — для FPR
@@ -73,7 +73,7 @@ def load_sep(path: str, limit: int | None = None, intent: str = "qa") -> list[At
         pc, pi = it.get("prompt_clean", ""), it.get("prompt_instructed", "")
         injected = pi[len(pc):].strip() if pi.startswith(pc) else (it.get("witness") or "")
         out.append(AttackSample(query=q, chunk_text=pi,
-                                is_injected=True, permission=P.P2_TASK, technique="TK2",
+                                is_injected=True, permission=P.TASK, technique="task_swap",
                                 canary=it.get("witness"), intent=intent,
                                 source="sep", meta={"subtask": _sep_subtask(it), "injected_task": injected}))
         out.append(AttackSample(query=q, chunk_text=it.get("prompt_clean", ""),
@@ -97,14 +97,14 @@ def _sep_subtask(it: dict) -> str:
 # ---- BIPIA (email/table/code — локальные контексты) ------------------------------------------
 # Контексты: benchmark/<task>/test.jsonl; атаки: benchmark/text_attack_test.json (dict categ->list).
 BIPIA_TEXT_CATEGORY_PERM = {
-    "Task Automation": P.P5_ACTIONS, "Business Intelligence": P.P2_TASK,
-    "Conversational Agent": P.P2_TASK, "Research Assistance": P.P2_TASK,
-    "Sentiment Analysis": P.P2_TASK, "Substitution Ciphers": P.P6_FORMAT_CHANNEL,
-    "Base Encoding": P.P6_FORMAT_CHANNEL, "Reverse Text": P.P6_FORMAT_CHANNEL,
-    "Emoji Substitution": P.P6_FORMAT_CHANNEL, "Language Translation": P.P6_FORMAT_CHANNEL,
-    "Information Dissemination": P.P6_FORMAT_CHANNEL, "Marketing & Advertising": P.P6_FORMAT_CHANNEL,
-    "Entertainment": P.P2_TASK, "Scams & Fraud": P.P6_FORMAT_CHANNEL,
-    "Misinformation & Propaganda": P.P6_FORMAT_CHANNEL,
+    "Task Automation": P.ACTIONS, "Business Intelligence": P.TASK,
+    "Conversational Agent": P.TASK, "Research Assistance": P.TASK,
+    "Sentiment Analysis": P.TASK, "Substitution Ciphers": P.FORMAT,
+    "Base Encoding": P.FORMAT, "Reverse Text": P.FORMAT,
+    "Emoji Substitution": P.FORMAT, "Language Translation": P.FORMAT,
+    "Information Dissemination": P.FORMAT, "Marketing & Advertising": P.FORMAT,
+    "Entertainment": P.TASK, "Scams & Fraud": P.FORMAT,
+    "Misinformation & Propaganda": P.FORMAT,
 }
 
 
@@ -131,9 +131,9 @@ def load_bipia(repo_dir: str, task: str = "email", split: str = "test",
         out.append(AttackSample(query=q, chunk_text=c, is_injected=False, intent=intent,
                                 source=f"bipia/{task}", meta={"category": "clean"}))
         cat, atk = flat[i % len(flat)]
-        perm = (perm_map or {}).get(cat, P.P5_ACTIONS if task == "code" else P.P2_TASK)
+        perm = (perm_map or {}).get(cat, P.ACTIONS if task == "code" else P.TASK)
         out.append(AttackSample(query=q, chunk_text=c.rstrip() + "\n" + atk, is_injected=True,
-                                permission=perm, technique="TK5" if task == "code" else None,
+                                permission=perm, technique="tool_call" if task == "code" else None,
                                 intent=intent, source=f"bipia/{task}",
                                 meta={"category": cat, "attack": atk[:200]}))
         if limit and len(out) >= 2 * limit:

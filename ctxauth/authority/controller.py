@@ -1,10 +1,10 @@
-"""К8 — точка контроля полномочий контекста.
+"""Контроль разрешений retrieved-контекста — основной метод.
 
 Для каждого retrieved-фрагмента до передачи в LLM:
-  1) по запросу пользователя определяется делегированный профиль (RequestPolicy);
-  2) строится профиль заявляемого влияния фрагмента (AuthorityProfile) по П2–П6;
-  3) находятся нарушения: заявляемое полномочие не делегировано запросом, либо делегировано,
-     но выходит за его область (инструмент вне tool_scope, ссылка вне allowlist);
+  1) по запросу пользователя определяется, что фрагменту разрешено менять (RequestPolicy);
+  2) оценивается, на какие виды влияния претендует фрагмент (AuthorityProfile);
+  3) находятся нарушения: заявлен вид влияния, не разрешённый запросом, либо разрешённый,
+     но выходящий за рамки (инструмент вне tool_scope, ссылка вне allowlist);
   4) принимается решение PASS / SANITIZE / BLOCK — без вердикта «атака/не атака».
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ from .analyzer import AuthorityAnalyzer
 from .intent import IntentRecognizer, static_policy
 
 REMOVED_MARK = "[removed by context authority control]"
-# Ссылки на «отложенные» части распределённой инъекции (ТК10).
+# Ссылки на «отложенные» части инъекции, разнесённой по нескольким фрагментам.
 DEFERRED_REF = re.compile(
     r"\b(remember|keep in mind|memori[sz]e|the (code ?word|phrase|instruction|step|rule)s?\b.{0,20}\b(below|later|at the end|in the (next|last|following) (section|paragraph|part))|"
     r"(continued|continues) (below|in the next)|part \d+ of \d+|when you (see|read|encounter)|"
@@ -38,8 +38,8 @@ class ControllerConfig:
     sanitize: bool = True  # False → любой фрагмент с нарушением блокируется целиком
     sanitize_max_ratio: float = 0.5  # если нарушающих предложений больше этой доли — BLOCK
     block_on_hidden: bool = True  # нарушение в скрытом/обфусцированном тексте → BLOCK фрагмента
-    cross_chunk: bool = True  # анализ распределённых по чанкам инъекций (ТК10)
-    request_dependent: bool = True  # False → статический профиль {П1} (абляция)
+    cross_chunk: bool = True  # анализ инъекций, разнесённых по нескольким фрагментам
+    request_dependent: bool = True  # False → не зависящий от запроса набор разрешений (абляция)
 
 
 class ContextAuthorityController:
@@ -67,11 +67,11 @@ class ContextAuthorityController:
                 continue
             if not policy.allows(p):
                 out.append(Violation(p, s, f"{p.code} не делегировано запросом ({policy.intent})", ev.text))
-            elif p == P.P5_ACTIONS:
+            elif p == P.ACTIONS:
                 bad = [t for t in ev.tools if t not in policy.tool_scope or t in EXTERNAL_TOOLS]
                 if bad:
                     out.append(Violation(p, s, f"инструменты вне области делегирования: {', '.join(bad)}", ev.text))
-            elif p == P.P6_FORMAT_CHANNEL:
+            elif p == P.FORMAT:
                 bad = [u for u in ev.urls if not domain_allowed(url_domain(u), policy.domain_allowlist)]
                 if bad:
                     out.append(Violation(p, s, f"внешний канал вне allowlist: {url_domain(bad[0])}", ev.text))
@@ -126,7 +126,7 @@ class ContextAuthorityController:
         return res
 
     def _cross_chunk(self, chunks, sents, evs, viol, policy) -> None:
-        """ТК10: инъекция, разнесённая по фрагментам одного документа, оценивается совместно.
+        """Инъекция, разнесённая по фрагментам одного документа, оценивается совместно.
 
         Рассматриваются (а) пары соседних предложений на границах чанков одного документа и
         (б) пары «предложение с отложенной ссылкой» × любое предложение того же документа.
@@ -159,7 +159,7 @@ class ContextAuthorityController:
                 vs = self.violations_of(ev, policy)
                 if vs:
                     for v in vs:
-                        v.reason += " [ТК10: совместно с другим фрагментом]"
+                        v.reason += " [совместно с другим фрагментом]"
                     viol[a][i] = viol[a][i] + vs
                     viol[b][j] = viol[b][j] + vs
                     for (ci, k) in ((a, i), (b, j)):

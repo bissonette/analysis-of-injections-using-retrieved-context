@@ -1,4 +1,4 @@
-"""К5: эмбеддинг. По умолчанию TF-IDF (без внешних моделей), опционально sentence-transformers."""
+"""Векторизация текста. По умолчанию TF-IDF (без внешних моделей), опционально sentence-transformers."""
 from __future__ import annotations
 
 import numpy as np

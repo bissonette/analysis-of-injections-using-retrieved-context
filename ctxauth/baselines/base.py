@@ -1,6 +1,6 @@
 """Единый интерфейс защиты: filter(query, chunks, intent) -> FilterResult.
 
-Метод К8 (ContextAuthorityController) и все baseline'ы реализуют его, поэтому протокол
+Основной метод (ContextAuthorityController) и все baseline'ы реализуют его, поэтому протокол
 оценки (ctxauth.eval) одинаково прогоняет любой из них.
 """
 from __future__ import annotations

@@ -12,7 +12,7 @@ from ..types import Permission as P
 from .ml import MLScorer
 from .rules import RuleScorer
 
-# Глагольные указания на действия → инструмент стенда (для проверки области делегирования П5).
+# Глагольные указания на действия → инструмент (для проверки, что действие разрешено запросом).
 TOOL_HINTS: tuple[tuple[str, str], ...] = (
     (r"\b(send|forward|e-?mail)\b.{0,40}(@|\bmail\b|\be-?mail\b)|\bsend_email\b|отправь\w*.{0,20}письм", "send_email"),
     (r"\bhttp_get\b|\b(http|web|get|post)\s+request\b|\bfetch\b.{0,20}\burl\b|\bvisit\b.{0,20}https?://", "http_get"),

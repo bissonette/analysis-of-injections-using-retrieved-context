@@ -1,9 +1,13 @@
-"""Базовые типы предметной области: полномочия П1–П6, техники ТК1–ТК10,
-фрагменты контекста, профили полномочий и решения модуля К8.
+"""Базовые типы: виды влияния фрагмента на ответ модели, техники инъекций,
+фрагменты контекста, разрешения запроса и решения фильтра.
 
-Обозначения совпадают с моделью угроз (раздел 6.4 THESIS_CONTEXT):
-П1 — содержание ответа, П2 — задача пользователя, П3 — инструкции модели,
-П4 — раскрытие информации, П5 — действия/инструменты, П6 — форма ответа и внешний канал.
+Виды влияния, которые retrieved-фрагмент может оказывать на поведение модели:
+  content      — влияние на содержание ответа (разрешено по умолчанию);
+  task         — изменение задачи, которую решает модель;
+  instructions — изменение правил/инструкций модели (системный промпт, роль);
+  disclosure   — раскрытие служебной или чужой информации, секретов;
+  actions      — инициирование действий и вызовов инструментов;
+  format       — навязывание формы ответа и вывод во внешний канал (ссылки, изображения).
 """
 from __future__ import annotations
 
@@ -13,18 +17,18 @@ from typing import Any
 
 
 class Permission(IntEnum):
-    """Классы полномочий фрагмента retrieved-контекста."""
+    """Вид влияния, которое фрагмент контекста может оказывать на ответ модели."""
 
-    P1_CONTENT = 1  # влияние на фактическое содержание ответа (разрешено по умолчанию)
-    P2_TASK = 2  # изменение задачи пользователя
-    P3_INSTRUCTIONS = 3  # инструкции модели: системный промпт, правила обработки
-    P4_DISCLOSURE = 4  # раскрытие информации (системный промпт, чужие данные, секреты)
-    P5_ACTIONS = 5  # действия / вызовы инструментов
-    P6_FORMAT_CHANNEL = 6  # форма ответа и внешний канал (серая зона)
+    CONTENT = 1  # влияние на фактическое содержание ответа (разрешено по умолчанию)
+    TASK = 2  # изменение задачи пользователя
+    INSTRUCTIONS = 3  # правила/инструкции модели: системный промпт, роль, правила обработки
+    DISCLOSURE = 4  # раскрытие информации (системный промпт, чужие данные, секреты)
+    ACTIONS = 5  # действия / вызовы инструментов
+    FORMAT = 6  # форма ответа и внешний канал
 
     @property
     def code(self) -> str:
-        return f"P{int(self)}"
+        return self.name.lower()
 
     @property
     def title_ru(self) -> str:
@@ -32,69 +36,68 @@ class Permission(IntEnum):
 
     @classmethod
     def from_code(cls, code: str) -> "Permission":
-        code = code.strip().upper().replace("П", "P")
-        return cls(int(code.lstrip("P")))
+        return cls[code.strip().upper()]
 
 
 PERMISSION_TITLES_RU = {
-    Permission.P1_CONTENT: "Влияние на содержание ответа",
-    Permission.P2_TASK: "Изменение задачи пользователя",
-    Permission.P3_INSTRUCTIONS: "Инструкции модели",
-    Permission.P4_DISCLOSURE: "Раскрытие информации",
-    Permission.P5_ACTIONS: "Действия / вызовы инструментов",
-    Permission.P6_FORMAT_CHANNEL: "Форма ответа и внешний канал",
+    Permission.CONTENT: "Влияние на содержание ответа",
+    Permission.TASK: "Изменение задачи пользователя",
+    Permission.INSTRUCTIONS: "Изменение инструкций модели",
+    Permission.DISCLOSURE: "Раскрытие информации",
+    Permission.ACTIONS: "Действия / вызовы инструментов",
+    Permission.FORMAT: "Форма ответа и внешний канал",
 }
 
-# Полномочия, которые проверяются (П1 разрешено всегда и не «заявляется» как нарушение).
+# Виды влияния, которые проверяются (content разрешён всегда и не считается нарушением).
 CONTROLLED = (
-    Permission.P2_TASK,
-    Permission.P3_INSTRUCTIONS,
-    Permission.P4_DISCLOSURE,
-    Permission.P5_ACTIONS,
-    Permission.P6_FORMAT_CHANNEL,
+    Permission.TASK,
+    Permission.INSTRUCTIONS,
+    Permission.DISCLOSURE,
+    Permission.ACTIONS,
+    Permission.FORMAT,
 )
 
 
 class Technique(str, Enum):
-    """Классы техник косвенного воздействия ТК1–ТК10 (основа разметки датасета)."""
+    """Техники косвенных инъекций (используются для разметки примеров)."""
 
-    TK1 = "TK1"  # прямое переопределение указаний («ignore previous instructions»)
-    TK2 = "TK2"  # подмена задачи пользователя
-    TK3 = "TK3"  # имитация системного / служебного сообщения, ролевой разметки
-    TK4 = "TK4"  # запрос раскрытия системного промпта, секретов, чужих данных
-    TK5 = "TK5"  # инициирование действий / вызовов инструментов
-    TK6 = "TK6"  # эксфильтрация через внешний канал (ссылки, изображения)
-    TK7 = "TK7"  # навязывание формы ответа, вставка контента (реклама, фишинг)
-    TK8 = "TK8"  # ссылка на мнимые полномочия («пользователь разрешил…»), злоупотребление доверием
-    TK9 = "TK9"  # модификатор: снижение заметности (обфускация, скрытый текст)
-    TK10 = "TK10"  # модификатор: распределение воздействия по нескольким чанкам
+    OVERRIDE = "override"  # прямое переопределение указаний («ignore previous instructions»)
+    TASK_SWAP = "task_swap"  # подмена задачи пользователя
+    FAKE_SYSTEM = "fake_system"  # имитация системного / служебного сообщения, ролевой разметки
+    DISCLOSE = "disclose"  # запрос раскрытия системного промпта, секретов, чужих данных
+    TOOL_CALL = "tool_call"  # инициирование действий / вызовов инструментов
+    EXFILTRATION = "exfiltration"  # вывод данных через внешний канал (ссылки, изображения)
+    CONTENT_INSERT = "content_insert"  # навязывание формы ответа, вставка контента (реклама, фишинг)
+    FALSE_AUTHORITY = "false_authority"  # ссылка на мнимые полномочия («пользователь разрешил…»)
+    OBFUSCATION = "obfuscation"  # модификатор: снижение заметности (обфускация, скрытый текст)
+    DISTRIBUTED = "distributed"  # модификатор: распределение воздействия по нескольким фрагментам
 
 
 TECHNIQUE_TITLES_RU = {
-    Technique.TK1: "Переопределение указаний",
-    Technique.TK2: "Подмена задачи",
-    Technique.TK3: "Имитация служебного сообщения",
-    Technique.TK4: "Запрос раскрытия информации",
-    Technique.TK5: "Инициирование действий",
-    Technique.TK6: "Эксфильтрация через внешний канал",
-    Technique.TK7: "Навязывание формы ответа / вставка контента",
-    Technique.TK8: "Ссылка на мнимые полномочия",
-    Technique.TK9: "Снижение заметности (модификатор)",
-    Technique.TK10: "Распределение по чанкам (модификатор)",
+    Technique.OVERRIDE: "Переопределение указаний",
+    Technique.TASK_SWAP: "Подмена задачи",
+    Technique.FAKE_SYSTEM: "Имитация служебного сообщения",
+    Technique.DISCLOSE: "Запрос раскрытия информации",
+    Technique.TOOL_CALL: "Инициирование действий",
+    Technique.EXFILTRATION: "Вывод через внешний канал",
+    Technique.CONTENT_INSERT: "Навязывание формы ответа / вставка контента",
+    Technique.FALSE_AUTHORITY: "Ссылка на мнимые полномочия",
+    Technique.OBFUSCATION: "Снижение заметности (модификатор)",
+    Technique.DISTRIBUTED: "Распределение по фрагментам (модификатор)",
 }
 
 
 class Action(str, Enum):
-    """Решение модуля К8 относительно фрагмента."""
+    """Решение фильтра по фрагменту."""
 
     PASS = "pass"  # фрагмент передаётся в LLM без изменений
-    SANITIZE = "sanitize"  # из фрагмента удалены предложения, превышающие полномочия
+    SANITIZE = "sanitize"  # из фрагмента удалены предложения, превышающие разрешения
     BLOCK = "block"  # фрагмент целиком исключён из контекста
 
 
 @dataclass
 class Chunk:
-    """Фрагмент retrieved-контекста (выход К7)."""
+    """Фрагмент retrieved-контекста (результат поиска)."""
 
     chunk_id: str
     doc_id: str
@@ -108,14 +111,14 @@ class Chunk:
 class ToolSpec:
     name: str
     description: str
-    external: bool = False  # инструмент выводит данные за пределы стенда
+    external: bool = False  # инструмент выводит данные во внешний мир
 
 
 @dataclass
 class RequestPolicy:
-    """Делегированный запросом пользователя профиль: что контексту разрешено менять.
+    """Что запрос пользователя разрешает контексту менять в поведении модели.
 
-    Профиль зависит от запроса (УБИ-С14): один и тот же фрагмент может быть
+    Набор разрешений зависит от запроса: один и тот же фрагмент может быть
     легитимен для одного запроса и недопустим для другого.
     """
 
@@ -125,12 +128,12 @@ class RequestPolicy:
     domain_allowlist: frozenset[str] = frozenset()  # домены, на которые допустимы ссылки
 
     def allows(self, p: Permission) -> bool:
-        return p == Permission.P1_CONTENT or p in self.allowed
+        return p == Permission.CONTENT or p in self.allowed
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "intent": self.intent,
-            "allowed": sorted(p.code for p in self.allowed | {Permission.P1_CONTENT}),
+            "allowed": sorted(p.code for p in self.allowed | {Permission.CONTENT}),
             "tool_scope": sorted(self.tool_scope),
             "domain_allowlist": sorted(self.domain_allowlist),
         }
@@ -165,7 +168,7 @@ class Violation:
 
 @dataclass
 class AuthorityProfile:
-    """Профиль заявляемого влияния фрагмента (вектор по П2–П6) + доказательства."""
+    """Профиль заявляемого влияния фрагмента (по видам влияния) + доказательства."""
 
     claimed: dict[Permission, float]
     sentences: list[SentenceEvidence]

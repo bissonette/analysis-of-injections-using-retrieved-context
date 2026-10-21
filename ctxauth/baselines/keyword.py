@@ -38,6 +38,6 @@ class KeywordDetector(BaseDefense):
         text = normalize(chunk.text, self.deobfuscate).text if self.deobfuscate else chunk.text
         for rx in _RE:
             if rx.search(text):
-                return Action.BLOCK, None, [Violation(P.P3_INSTRUCTIONS, 1.0,
+                return Action.BLOCK, None, [Violation(P.INSTRUCTIONS, 1.0,
                                                        f"сигнатура: {rx.pattern[:40]}", chunk.text[:80])]
         return Action.PASS, None, []
