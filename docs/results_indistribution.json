@@ -20,53 +20,14 @@
     "asr_before": 1.0,
     "asr_after": 1.0,
     "removed_context_ratio": 0.0,
-    "mean_latency_ms": 0.0008120054561996684,
+    "mean_latency_ms": 0.0009258654561315118,
     "by_permission": {
-      "P2": {
-        "tp": 0,
-        "fp": 0,
-        "tn": 0,
-        "fn": 220,
-        "n": 220,
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1": 0.0,
-        "fpr": 0.0,
-        "accuracy": 0.0,
-        "blocked_rate": 0.0
-      },
-      "P3": {
-        "tp": 0,
-        "fp": 0,
-        "tn": 0,
-        "fn": 150,
-        "n": 150,
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1": 0.0,
-        "fpr": 0.0,
-        "accuracy": 0.0,
-        "blocked_rate": 0.0
-      },
-      "P5": {
+      "actions": {
         "tp": 0,
         "fp": 0,
         "tn": 0,
         "fn": 5,
         "n": 5,
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1": 0.0,
-        "fpr": 0.0,
-        "accuracy": 0.0,
-        "blocked_rate": 0.0
-      },
-      "P6": {
-        "tp": 0,
-        "fp": 0,
-        "tn": 0,
-        "fn": 175,
-        "n": 175,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
@@ -86,10 +47,49 @@
         "fpr": 0.0,
         "accuracy": 1.0,
         "blocked_rate": 0.0
+      },
+      "format": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 0,
+        "fn": 175,
+        "n": 175,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.0,
+        "blocked_rate": 0.0
+      },
+      "instructions": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 0,
+        "fn": 150,
+        "n": 150,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.0,
+        "blocked_rate": 0.0
+      },
+      "task": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 0,
+        "fn": 220,
+        "n": 220,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.0,
+        "blocked_rate": 0.0
       }
     },
     "by_technique": {
-      "TK1": {
+      "content_insert": {
         "tp": 0,
         "fp": 0,
         "tn": 0,
@@ -102,20 +102,7 @@
         "accuracy": 0.0,
         "blocked_rate": 0.0
       },
-      "TK2": {
-        "tp": 0,
-        "fp": 0,
-        "tn": 0,
-        "fn": 200,
-        "n": 200,
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1": 0.0,
-        "fpr": 0.0,
-        "accuracy": 0.0,
-        "blocked_rate": 0.0
-      },
-      "TK3": {
+      "exfiltration": {
         "tp": 0,
         "fp": 0,
         "tn": 0,
@@ -128,20 +115,7 @@
         "accuracy": 0.0,
         "blocked_rate": 0.0
       },
-      "TK6": {
-        "tp": 0,
-        "fp": 0,
-        "tn": 0,
-        "fn": 75,
-        "n": 75,
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1": 0.0,
-        "fpr": 0.0,
-        "accuracy": 0.0,
-        "blocked_rate": 0.0
-      },
-      "TK7": {
+      "fake_system": {
         "tp": 0,
         "fp": 0,
         "tn": 0,
@@ -165,6 +139,32 @@
         "f1": 0.0,
         "fpr": 0.0,
         "accuracy": 0.9167,
+        "blocked_rate": 0.0
+      },
+      "override": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 0,
+        "fn": 75,
+        "n": 75,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.0,
+        "blocked_rate": 0.0
+      },
+      "task_swap": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 0,
+        "fn": 200,
+        "n": 200,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.0,
         "blocked_rate": 0.0
       }
     },
@@ -258,35 +258,9 @@
     "asr_before": 1.0,
     "asr_after": 0.9636363636363636,
     "removed_context_ratio": 0.055492715411147135,
-    "mean_latency_ms": 2.026108350002522,
+    "mean_latency_ms": 2.1628045063671792,
     "by_permission": {
-      "P2": {
-        "tp": 0,
-        "fp": 0,
-        "tn": 0,
-        "fn": 220,
-        "n": 220,
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1": 0.0,
-        "fpr": 0.0,
-        "accuracy": 0.0,
-        "blocked_rate": 0.0
-      },
-      "P3": {
-        "tp": 14,
-        "fp": 0,
-        "tn": 0,
-        "fn": 136,
-        "n": 150,
-        "precision": 1.0,
-        "recall": 0.0933,
-        "f1": 0.1707,
-        "fpr": 0.0,
-        "accuracy": 0.0933,
-        "blocked_rate": 0.0933
-      },
-      "P5": {
+      "actions": {
         "tp": 0,
         "fp": 0,
         "tn": 0,
@@ -298,19 +272,6 @@
         "fpr": 0.0,
         "accuracy": 0.0,
         "blocked_rate": 0.0
-      },
-      "P6": {
-        "tp": 6,
-        "fp": 0,
-        "tn": 0,
-        "fn": 169,
-        "n": 175,
-        "precision": 1.0,
-        "recall": 0.0343,
-        "f1": 0.0663,
-        "fpr": 0.0,
-        "accuracy": 0.0343,
-        "blocked_rate": 0.0343
       },
       "clean": {
         "tp": 0,
@@ -324,49 +285,62 @@
         "fpr": 0.0273,
         "accuracy": 0.9727,
         "blocked_rate": 0.0273
-      }
-    },
-    "by_technique": {
-      "TK1": {
-        "tp": 3,
+      },
+      "format": {
+        "tp": 6,
         "fp": 0,
         "tn": 0,
-        "fn": 72,
-        "n": 75,
+        "fn": 169,
+        "n": 175,
         "precision": 1.0,
-        "recall": 0.04,
-        "f1": 0.0769,
+        "recall": 0.0343,
+        "f1": 0.0663,
         "fpr": 0.0,
-        "accuracy": 0.04,
-        "blocked_rate": 0.04
+        "accuracy": 0.0343,
+        "blocked_rate": 0.0343
       },
-      "TK2": {
+      "instructions": {
+        "tp": 14,
+        "fp": 0,
+        "tn": 0,
+        "fn": 136,
+        "n": 150,
+        "precision": 1.0,
+        "recall": 0.0933,
+        "f1": 0.1707,
+        "fpr": 0.0,
+        "accuracy": 0.0933,
+        "blocked_rate": 0.0933
+      },
+      "task": {
         "tp": 0,
         "fp": 0,
         "tn": 0,
-        "fn": 200,
-        "n": 200,
+        "fn": 220,
+        "n": 220,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
         "fpr": 0.0,
         "accuracy": 0.0,
         "blocked_rate": 0.0
-      },
-      "TK3": {
-        "tp": 11,
+      }
+    },
+    "by_technique": {
+      "content_insert": {
+        "tp": 2,
         "fp": 0,
         "tn": 0,
-        "fn": 64,
+        "fn": 73,
         "n": 75,
         "precision": 1.0,
-        "recall": 0.1467,
-        "f1": 0.2558,
+        "recall": 0.0267,
+        "f1": 0.0519,
         "fpr": 0.0,
-        "accuracy": 0.1467,
-        "blocked_rate": 0.1467
+        "accuracy": 0.0267,
+        "blocked_rate": 0.0267
       },
-      "TK6": {
+      "exfiltration": {
         "tp": 4,
         "fp": 0,
         "tn": 0,
@@ -379,18 +353,18 @@
         "accuracy": 0.0533,
         "blocked_rate": 0.0533
       },
-      "TK7": {
-        "tp": 2,
+      "fake_system": {
+        "tp": 11,
         "fp": 0,
         "tn": 0,
-        "fn": 73,
+        "fn": 64,
         "n": 75,
         "precision": 1.0,
-        "recall": 0.0267,
-        "f1": 0.0519,
+        "recall": 0.1467,
+        "f1": 0.2558,
         "fpr": 0.0,
-        "accuracy": 0.0267,
-        "blocked_rate": 0.0267
+        "accuracy": 0.1467,
+        "blocked_rate": 0.1467
       },
       "n/a": {
         "tp": 0,
@@ -404,6 +378,32 @@
         "fpr": 0.0273,
         "accuracy": 0.8917,
         "blocked_rate": 0.025
+      },
+      "override": {
+        "tp": 3,
+        "fp": 0,
+        "tn": 0,
+        "fn": 72,
+        "n": 75,
+        "precision": 1.0,
+        "recall": 0.04,
+        "f1": 0.0769,
+        "fpr": 0.0,
+        "accuracy": 0.04,
+        "blocked_rate": 0.04
+      },
+      "task_swap": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 0,
+        "fn": 200,
+        "n": 200,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.0,
+        "blocked_rate": 0.0
       }
     },
     "by_source": {
@@ -496,35 +496,9 @@
     "asr_before": 1.0,
     "asr_after": 0.7527272727272727,
     "removed_context_ratio": 0.01848429571686886,
-    "mean_latency_ms": 9.154509966362268,
+    "mean_latency_ms": 9.369765232725472,
     "by_permission": {
-      "P2": {
-        "tp": 5,
-        "fp": 0,
-        "tn": 0,
-        "fn": 215,
-        "n": 220,
-        "precision": 1.0,
-        "recall": 0.0227,
-        "f1": 0.0444,
-        "fpr": 0.0,
-        "accuracy": 0.0227,
-        "blocked_rate": 0.0227
-      },
-      "P3": {
-        "tp": 54,
-        "fp": 0,
-        "tn": 0,
-        "fn": 96,
-        "n": 150,
-        "precision": 1.0,
-        "recall": 0.36,
-        "f1": 0.5294,
-        "fpr": 0.0,
-        "accuracy": 0.36,
-        "blocked_rate": 0.36
-      },
-      "P5": {
+      "actions": {
         "tp": 0,
         "fp": 0,
         "tn": 0,
@@ -536,19 +510,6 @@
         "fpr": 0.0,
         "accuracy": 0.0,
         "blocked_rate": 0.0
-      },
-      "P6": {
-        "tp": 77,
-        "fp": 0,
-        "tn": 0,
-        "fn": 98,
-        "n": 175,
-        "precision": 1.0,
-        "recall": 0.44,
-        "f1": 0.6111,
-        "fpr": 0.0,
-        "accuracy": 0.44,
-        "blocked_rate": 0.44
       },
       "clean": {
         "tp": 0,
@@ -562,49 +523,62 @@
         "fpr": 0.0545,
         "accuracy": 0.9455,
         "blocked_rate": 0.0545
-      }
-    },
-    "by_technique": {
-      "TK1": {
-        "tp": 19,
+      },
+      "format": {
+        "tp": 77,
         "fp": 0,
         "tn": 0,
-        "fn": 56,
-        "n": 75,
+        "fn": 98,
+        "n": 175,
         "precision": 1.0,
-        "recall": 0.2533,
-        "f1": 0.4043,
+        "recall": 0.44,
+        "f1": 0.6111,
         "fpr": 0.0,
-        "accuracy": 0.2533,
-        "blocked_rate": 0.2533
+        "accuracy": 0.44,
+        "blocked_rate": 0.44
       },
-      "TK2": {
+      "instructions": {
+        "tp": 54,
+        "fp": 0,
+        "tn": 0,
+        "fn": 96,
+        "n": 150,
+        "precision": 1.0,
+        "recall": 0.36,
+        "f1": 0.5294,
+        "fpr": 0.0,
+        "accuracy": 0.36,
+        "blocked_rate": 0.36
+      },
+      "task": {
         "tp": 5,
         "fp": 0,
         "tn": 0,
-        "fn": 195,
-        "n": 200,
+        "fn": 215,
+        "n": 220,
         "precision": 1.0,
-        "recall": 0.025,
-        "f1": 0.0488,
+        "recall": 0.0227,
+        "f1": 0.0444,
         "fpr": 0.0,
-        "accuracy": 0.025,
-        "blocked_rate": 0.025
-      },
-      "TK3": {
-        "tp": 35,
+        "accuracy": 0.0227,
+        "blocked_rate": 0.0227
+      }
+    },
+    "by_technique": {
+      "content_insert": {
+        "tp": 30,
         "fp": 0,
         "tn": 0,
-        "fn": 40,
+        "fn": 45,
         "n": 75,
         "precision": 1.0,
-        "recall": 0.4667,
-        "f1": 0.6364,
+        "recall": 0.4,
+        "f1": 0.5714,
         "fpr": 0.0,
-        "accuracy": 0.4667,
-        "blocked_rate": 0.4667
+        "accuracy": 0.4,
+        "blocked_rate": 0.4
       },
-      "TK6": {
+      "exfiltration": {
         "tp": 42,
         "fp": 0,
         "tn": 0,
@@ -617,18 +591,18 @@
         "accuracy": 0.56,
         "blocked_rate": 0.56
       },
-      "TK7": {
-        "tp": 30,
+      "fake_system": {
+        "tp": 35,
         "fp": 0,
         "tn": 0,
-        "fn": 45,
+        "fn": 40,
         "n": 75,
         "precision": 1.0,
-        "recall": 0.4,
-        "f1": 0.5714,
+        "recall": 0.4667,
+        "f1": 0.6364,
         "fpr": 0.0,
-        "accuracy": 0.4,
-        "blocked_rate": 0.4
+        "accuracy": 0.4667,
+        "blocked_rate": 0.4667
       },
       "n/a": {
         "tp": 5,
@@ -642,6 +616,32 @@
         "fpr": 0.0545,
         "accuracy": 0.875,
         "blocked_rate": 0.0583
+      },
+      "override": {
+        "tp": 19,
+        "fp": 0,
+        "tn": 0,
+        "fn": 56,
+        "n": 75,
+        "precision": 1.0,
+        "recall": 0.2533,
+        "f1": 0.4043,
+        "fpr": 0.0,
+        "accuracy": 0.2533,
+        "blocked_rate": 0.2533
+      },
+      "task_swap": {
+        "tp": 5,
+        "fp": 0,
+        "tn": 0,
+        "fn": 195,
+        "n": 200,
+        "precision": 1.0,
+        "recall": 0.025,
+        "f1": 0.0488,
+        "fpr": 0.0,
+        "accuracy": 0.025,
+        "blocked_rate": 0.025
       }
     },
     "by_source": {

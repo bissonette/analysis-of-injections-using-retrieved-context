@@ -1,9 +1,9 @@
 """Определение делегированного профиля по запросу пользователя: запрос → RequestPolicy.
 
 Это реализация ключевой договорённости «профиль полномочий зависит от запроса пользователя»
-(УБИ-С14). Запрос классифицируется в одно из намерений, каждому намерению соответствует
+Запрос классифицируется в одно из намерений, каждому намерению соответствует
 набор полномочий, которые пользователь делегирует retrieved-контексту.
-П3 (инструкции модели) и П4 (раскрытие информации) контексту не делегируются никогда.
+Инструкции модели и раскрытие информации контексту не разрешаются никогда.
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ class IntentSpec:
 INTENTS: tuple[IntentSpec, ...] = (
     IntentSpec(
         "follow_procedure",
-        frozenset({P.P2_TASK, P.P5_ACTIONS}),
+        frozenset({P.TASK, P.ACTIONS}),
         frozenset({"create_ticket", "search_kb"}),
         (
             r"\b(follow|execute|carry out|perform|run|apply|complete)\b.{0,40}\b(steps|instructions|procedure|runbook|checklist|playbook|ticket)\b",
@@ -37,7 +37,7 @@ INTENTS: tuple[IntentSpec, ...] = (
     ),
     IntentSpec(
         "format_by_doc",
-        frozenset({P.P6_FORMAT_CHANNEL}),
+        frozenset({P.FORMAT}),
         frozenset(),
         (
             r"\b(format|style|structure|lay ?out|write)\b.{0,40}\b(according to|following|per|as (in|described in)|using)\b.{0,30}\b(template|style ?guide|guidelines|document|example)\b",
@@ -62,7 +62,7 @@ INTENTS: tuple[IntentSpec, ...] = (
 )
 
 INTENT_BY_NAME = {i.name: i for i in INTENTS}
-# Домены, ссылки на которые допустимы в ответе (организационная мера; задаётся администратором К13).
+# Домены, ссылки на которые допустимы в ответе (организационная мера; задаётся администратором).
 DEFAULT_DOMAIN_ALLOWLIST = frozenset({"intranet.local", "docs.company.local", "kb.company.local"})
 
 

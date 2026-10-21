@@ -1,4 +1,4 @@
-"""К7: ретривер + (опциональный) лексический реранкер."""
+"""Ретривер: поиск top-k фрагментов + опциональный лексический реранкер."""
 from __future__ import annotations
 
 from dataclasses import replace

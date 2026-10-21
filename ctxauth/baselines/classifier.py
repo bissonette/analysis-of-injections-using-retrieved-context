@@ -47,7 +47,7 @@ class BinaryChunkDetector(BaseDefense):
     def decide(self, query: str, chunk: Chunk):
         p = float(self.proba([chunk.text])[0])
         if p >= self.threshold:
-            return Action.BLOCK, None, [Violation(P.P3_INSTRUCTIONS, p, "детектор: вероятность инъекции", chunk.text[:80])]
+            return Action.BLOCK, None, [Violation(P.INSTRUCTIONS, p, "детектор: вероятность инъекции", chunk.text[:80])]
         return Action.PASS, None, []
 
     def save(self, path):

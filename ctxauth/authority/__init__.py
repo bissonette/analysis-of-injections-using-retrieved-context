@@ -1,4 +1,4 @@
-"""К8: контроль полномочий retrieved-контекста."""
+"""Контроль разрешений retrieved-контекста."""
 from .analyzer import AuthorityAnalyzer
 from .controller import ContextAuthorityController, ControllerConfig
 from .intent import IntentRecognizer

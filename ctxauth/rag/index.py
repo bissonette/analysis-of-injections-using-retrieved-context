@@ -1,4 +1,4 @@
-"""К6: векторное хранилище (in-memory, косинусная близость)."""
+"""Векторное хранилище фрагментов (in-memory, косинусная близость)."""
 from __future__ import annotations
 
 import numpy as np

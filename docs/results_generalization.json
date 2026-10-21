@@ -3,9 +3,9 @@
     "train": 900,
     "test": 600,
     "ml_labels": [
-      "P2",
-      "P5",
-      "P6"
+      "task",
+      "actions",
+      "format"
     ],
     "defenses": {
       "keyword": {
@@ -46,10 +46,10 @@
     "train": 1000,
     "test": 500,
     "ml_labels": [
-      "P2",
-      "P3",
-      "P5",
-      "P6"
+      "task",
+      "instructions",
+      "actions",
+      "format"
     ],
     "defenses": {
       "keyword": {
@@ -90,9 +90,9 @@
     "train": 1100,
     "test": 400,
     "ml_labels": [
-      "P2",
-      "P3",
-      "P6"
+      "task",
+      "instructions",
+      "format"
     ],
     "defenses": {
       "keyword": {
