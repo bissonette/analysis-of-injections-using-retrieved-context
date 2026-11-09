@@ -109,8 +109,13 @@ BIPIA_TEXT_CATEGORY_PERM = {
 
 
 def load_bipia(repo_dir: str, task: str = "email", split: str = "test",
-               limit: int | None = 300, intent: str = "qa") -> list[AttackSample]:
-    """repo_dir — путь к склонированному microsoft/BIPIA. task: email|table|code."""
+               limit: int | None = 300, intent: str = "qa", obfuscate: bool = False) -> list[AttackSample]:
+    """repo_dir — путь к склонированному microsoft/BIPIA. task: email|table|code.
+
+    obfuscate=True повторяет «stealth»-режим BIPIA: текст инъекции кодируется в base64,
+    чтобы проверить устойчивость к обфускации (техника obfuscation).
+    """
+    import base64
     base = Path(repo_dir) / "benchmark"
     ctx_file = base / task / f"{split}.jsonl"
     atk_file = base / f"{'code' if task == 'code' else 'text'}_attack_{split}.json"
@@ -121,6 +126,7 @@ def load_bipia(repo_dir: str, task: str = "email", split: str = "test",
     perm_map = BIPIA_TEXT_CATEGORY_PERM if task != "code" else None
     out: list[AttackSample] = []
     flat = [(cat, s) for cat, lst in attacks.items() for s in lst]
+    src = f"bipia/{task}" + ("_obf" if obfuscate else "")
     for i, ctx in enumerate(contexts):
         c = ctx.get("context", "")
         if isinstance(c, list):            # BIPIA code: контекст приходит списком строк
@@ -129,14 +135,48 @@ def load_bipia(repo_dir: str, task: str = "email", split: str = "test",
         if isinstance(q, list):
             q = " ".join(map(str, q))
         out.append(AttackSample(query=q, chunk_text=c, is_injected=False, intent=intent,
-                                source=f"bipia/{task}", meta={"category": "clean"}))
+                                source=src, meta={"category": "clean"}))
         cat, atk = flat[i % len(flat)]
         perm = (perm_map or {}).get(cat, P.ACTIONS if task == "code" else P.TASK)
-        out.append(AttackSample(query=q, chunk_text=c.rstrip() + "\n" + atk, is_injected=True,
-                                permission=perm, technique="tool_call" if task == "code" else None,
-                                intent=intent, source=f"bipia/{task}",
-                                meta={"category": cat, "attack": atk[:200]}))
+        payload = base64.b64encode(atk.encode()).decode() if obfuscate else atk
+        out.append(AttackSample(query=q, chunk_text=c.rstrip() + "\n" + payload, is_injected=True,
+                                permission=perm, technique="obfuscation" if obfuscate else ("tool_call" if task == "code" else None),
+                                intent=intent, source=src,
+                                meta={"category": cat, "attack": atk[:200], "obfuscated": obfuscate}))
         if limit and len(out) >= 2 * limit:
+            break
+    return out
+
+
+# ---- InjecAgent (атаки на вызовы инструментов — вид влияния actions) -------------------------
+# Инъекция сидит в ответе инструмента (поле отзыва); шаблон содержит плейсхолдер <Attacker Instruction>.
+_INJECAGENT_BENIGN_REVIEW = "Great product overall, works as described and arrived on time."
+
+
+def load_injecagent(repo_dir: str, variant: str = "dh", split: str = "base",
+                    limit: int | None = None, intent: str = "qa") -> list[AttackSample]:
+    """repo_dir — путь к uiuc-kang-lab/InjecAgent. variant: dh (вред) | ds (кража данных)."""
+    path = Path(repo_dir) / "data" / f"test_cases_{variant}_{split}.json"
+    if not path.exists():
+        raise FileNotFoundError(f"нет файла InjecAgent: {path}")
+    data = json.load(path.open())
+    perm = P.ACTIONS
+    tech = "exfiltration" if variant == "ds" else "tool_call"
+    out: list[AttackSample] = []
+    for it in data:
+        q = it.get("User Instruction", "Use the tool and report the result.")
+        injected = it.get("Tool Response", "")
+        attacker = it.get("Attacker Instruction", "")
+        template = it.get("Tool Response Template", "")
+        out.append(AttackSample(query=q, chunk_text=injected, is_injected=True, permission=perm,
+                                technique=tech, intent=intent, source=f"injecagent/{variant}",
+                                meta={"attack": attacker, "injected_task": attacker,
+                                      "attack_type": it.get("Attack Type")}))
+        if template:  # чистый аналог: плейсхолдер → безобидный отзыв
+            clean = template.replace("<Attacker Instruction>", _INJECAGENT_BENIGN_REVIEW)
+            out.append(AttackSample(query=q, chunk_text=clean, is_injected=False, intent=intent,
+                                    source=f"injecagent/{variant}", meta={"category": "clean"}))
+        if limit and len(out) >= limit:
             break
     return out
 

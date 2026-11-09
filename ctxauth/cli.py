@@ -13,18 +13,23 @@ import sys
 
 
 def _build_samples(ext: str, limit: int):
-    from .data.loaders import load_bipia, load_piarena, load_sep
+    from .data.loaders import load_bipia, load_injecagent, load_piarena, load_sep
     s = []
     for f in ("nq_rag", "msmarco_rag", "hotpotqa_rag"):
         try:
             s += load_piarena(f"{ext}/PIArena/datasets/{f}.json", intent="qa")
         except FileNotFoundError:
             pass
-    for path, fn in [(f"{ext}/Should-It-Be-Executed-Or-Processed/SEP_dataset/SEP_dataset.json",
-                      lambda p: load_sep(p, limit=limit)),
-                     (f"{ext}/BIPIA", lambda p: load_bipia(p, task="email", limit=limit))]:
+    loaders = [
+        lambda: load_sep(f"{ext}/Should-It-Be-Executed-Or-Processed/SEP_dataset/SEP_dataset.json", limit=limit),
+        lambda: load_bipia(f"{ext}/BIPIA", task="email", limit=limit),
+        lambda: load_bipia(f"{ext}/BIPIA", task="email", limit=limit // 2 or 50, obfuscate=True),
+        lambda: load_injecagent(f"{ext}/InjecAgent", variant="dh", limit=2 * (limit or 200)),
+        lambda: load_injecagent(f"{ext}/InjecAgent", variant="ds", limit=2 * (limit or 200)),
+    ]
+    for fn in loaders:
         try:
-            s += fn(path)
+            s += fn()
         except FileNotFoundError:
             pass
     return s
