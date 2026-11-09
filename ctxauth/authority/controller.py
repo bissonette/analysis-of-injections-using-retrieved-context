@@ -39,6 +39,8 @@ class ControllerConfig:
     sanitize_max_ratio: float = 0.5  # если нарушающих предложений больше этой доли — BLOCK
     block_on_hidden: bool = True  # нарушение в скрытом/обфусцированном тексте → BLOCK фрагмента
     cross_chunk: bool = True  # анализ инъекций, разнесённых по нескольким фрагментам
+    offtopic_task: bool = True  # детектор тихой подмены задачи (не по теме команда)
+    proc_doc_ratio: float = 0.4  # доля команд, выше которой фрагмент считается процедурным (не трогаем)
     request_dependent: bool = True  # False → не зависящий от запроса набор разрешений (абляция)
 
 
@@ -88,6 +90,8 @@ class ContextAuthorityController:
         for ss in sents:
             evs.append(flat_ev[i:i + len(ss)])
             i += len(ss)
+        if self.config.offtopic_task:
+            self._offtopic_task(query, chunks, sents, evs)
         viol: list[list[list[Violation]]] = [[self.violations_of(e, policy) for e in ce] for ce in evs]
         if self.config.cross_chunk:
             self._cross_chunk(chunks, sents, evs, viol, policy)
@@ -124,6 +128,31 @@ class ContextAuthorityController:
                                      action=d.action.value, profile=d.profile.as_codes(),
                                      violations=[(v.permission.code, round(v.score, 3), v.reason) for v in d.violations])
         return res
+
+    def _offtopic_task(self, query, chunks, sents, evs) -> None:
+        """Тихая подмена задачи: одиночная команда, не относящаяся к запросу, в фактических данных.
+
+        Процедурные документы (регламенты, рецепты, инструкции) не затрагиваются: в них почти
+        каждое предложение — команда, поэтому при высокой доле команд фрагмент считается
+        процедурным и пропускается. Срабатывание — только когда команда в меньшинстве среди
+        неинструктивного текста (признак инъекции в данных)."""
+        from .rules import is_instruction, offtopic_instruction_score, topic_tokens
+        qtok = topic_tokens(query)
+        for ci, ss in enumerate(sents):
+            if not ss:
+                continue
+            instr_count = sum(is_instruction(s) for s in ss)
+            # процедурный документ — несколько команд И их высокая доля (короткий фрагмент с
+            # одной командой в фактическом тексте процедурным НЕ считается).
+            if instr_count >= 3 and instr_count / len(ss) > self.config.proc_doc_ratio:
+                continue
+            for k, sent in enumerate(ss):
+                score = offtopic_instruction_score(sent, qtok)
+                if score > 0:
+                    e = evs[ci][k]
+                    if score > e.scores.get(P.TASK, 0.0):
+                        e.scores[P.TASK] = score
+                        e.flags = sorted(set(e.flags) | {"offtopic_instruction"})
 
     def _cross_chunk(self, chunks, sents, evs, viol, policy) -> None:
         """Инъекция, разнесённая по фрагментам одного документа, оценивается совместно.

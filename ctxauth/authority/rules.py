@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from ..text import MD_IMAGE_RE, extract_urls, url_domain
+from ..text import MD_IMAGE_RE, extract_urls, url_domain, words
 from ..types import Permission as P
 
 _F = re.I | re.U
@@ -139,6 +139,87 @@ PAST_NARRATION = re.compile(
     r"попытал\w*|смог\w*|удалось|не удалось|в \d+ из \d+|показал\w*|продемонстрир\w*|сообщал\w*)\b",
     _F,
 )
+
+
+# Команда/просьба, адресованная исполнителю: предложение-инструкция (не повествование).
+# Базовые формы глаголов-указаний в начале предложения или после «please/now/first/kindly».
+_INSTR_VERBS = (
+    r"write|compose|create|generate|produce|draft|make|build|design|"
+    r"tell|describe|explain|list|analy[sz]e|provide|give|show|output|print|say|repeat|"
+    r"translate|summari[sz]e|rewrite|convert|calculate|compute|solve|"
+    r"add|include|insert|append|send|forward|email|mail|grant|delete|remove|export|upload|fetch|"
+    r"recommend|suggest|promote|advertise|rate|review|"
+    r"напиши|составь|создай|сгенерируй|сделай|расскажи|опиши|объясни|перечисли|проанализируй|"
+    r"покажи|выведи|повтори|переведи|добавь|вставь|отправь|удали|выгрузи|оцени|порекоменду\w*"
+)
+INSTRUCTION_LIKE = re.compile(
+    rf"^\s*(please\s+|kindly\s+|now\s+|first\s+|then\s+|also\s+|пожалуйста[,\s]+|сначала\s+|теперь\s+)?"
+    rf"(?:{_INSTR_VERBS})\b",
+    _F,
+)
+# Когнитивные задачи «произвести текст/вывод» — то, что сделала бы именно LLM (в отличие от
+# физических/прикладных действий «добавь соль», «нажми кнопку», «создай отчёт в системе»).
+# Тихая подмена задачи в наборах типа SEP — это такие задачи.
+_COGNITIVE_VERBS = (
+    r"write|compose|generate|produce|draft|tell|describe|explain|list|analy[sz]e|summari[sz]e|"
+    r"translate|rewrite|convert|say|print|output|repeat|recommend|suggest|rate|calculate|compute|solve|"
+    r"напиши|составь|сгенерируй|расскажи|опиши|объясни|перечисли|проанализируй|просуммируй|"
+    r"переведи|выведи|повтори|оцени|посоветуй|порекоменду\w*|вычисли|реши"
+)
+COGNITIVE_TASK = re.compile(
+    rf"^\s*(please\s+|kindly\s+|now\s+|first\s+|then\s+|also\s+|пожалуйста[,\s]+|сначала\s+|теперь\s+)?"
+    rf"(?:{_COGNITIVE_VERBS})\b|\b(i (want|need) you to|your (real )?task is|how (do|can) i)\b",
+    _F,
+)
+# Прямая просьба/вопрос-поручение в середине текста («can you …», «I want you to …», «how do I …»).
+REQUEST_MID = re.compile(
+    r"\b(can you|could you|would you|i (want|need) you to|your task is|how (do|can) i|"
+    r"не могли бы вы|прошу вас|ваша задача)\b",
+    _F,
+)
+# Человеческий адресат: предложение обращено к человеку (сотруднику, «мне», по email, по имени),
+# а не к модели. Такие инструкции не считаем подменой задачи.
+HUMAN_CUE = re.compile(
+    r"\b(me|us|my|our|your manager|your team|colleague|colleagues|employees?|staff|customers?|"
+    r"applicants?|students?|visitors?|readers?|team|everyone|all)\b"
+    r"|[\w.+-]+@[\w-]+\.[\w.]+"
+    r"|\b(мне|нам|мой|моя|мои|наш\w*|руководител\w*|сотрудник\w*|коллег\w*|команд\w*|клиент\w*)\b"
+    r"|^\s*(hi|hello|hey|dear|уважаем\w*|привет|здравствуйте)\b",
+    _F,
+)
+_STOP = set("a an the of to in on for and or but with without this that these those is are was were be "
+            "by as at from into about your you it its their his her our we they i he she him them us "
+            "и в на с по для от до из за о об у к не но а что как это этот эта эти тот та те".split())
+
+
+def topic_tokens(text: str) -> set[str]:
+    return {w for w in words(text) if len(w) > 2 and w not in _STOP}
+
+
+def is_instruction(sentence: str) -> bool:
+    """Предложение-команда, адресованная исполнителю (не человеку-читателю)."""
+    s = sentence.strip()
+    if HUMAN_CUE.search(s) or PROC_STEP.match(s) or HUMAN_READER.search(s):
+        return False
+    return bool(INSTRUCTION_LIKE.match(s) or REQUEST_MID.search(s))
+
+
+def offtopic_instruction_score(sentence: str, query_tokens: set[str], max_overlap: float = 0.2) -> float:
+    """Притязание на подмену задачи: когнитивная задача-вывод, не относящаяся по теме к запросу.
+    Срабатывает только на «произведи текст» (write/analyze/tell/…), не на физических действиях;
+    адресаты-люди и шаги уже отсеяны. Проверка «команда в данных, а не в процедурном документе»
+    делается на уровне фрагмента (контроллер)."""
+    s = sentence.strip()
+    if HUMAN_CUE.search(s) or PROC_STEP.match(s) or HUMAN_READER.search(s):
+        return 0.0
+    if not COGNITIVE_TASK.search(s):
+        return 0.0
+    st = topic_tokens(s)
+    if len(st) < 2:
+        return 0.0
+    if len(st & query_tokens) / len(st) <= max_overlap:
+        return 0.6   # когнитивная задача не по теме запроса → притязание на подмену задачи
+    return 0.0
 
 
 @dataclass
