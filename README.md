@@ -86,7 +86,7 @@ print(postprocess(out.text, res.policy.domain_allowlist).text, out.tool_calls)
 Ложные срабатывания на встроенном «трудном» корпусе (манулы, статьи о безопасности, регламенты):
 FPR 0.034.
 
-Документация: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/attack_analysis.md](docs/attack_analysis.md) — анализ успешности атак, [docs/existing_solutions.md](docs/existing_solutions.md) — обзор существующих решений.
+Документация: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/attack_analysis.md](docs/attack_analysis.md) — анализ успешности атак, [docs/existing_solutions.md](docs/existing_solutions.md) — обзор решений, [docs/EXPLAINER.md](docs/EXPLAINER.md) — пояснения простым языком.
 
 ## Статус
 
