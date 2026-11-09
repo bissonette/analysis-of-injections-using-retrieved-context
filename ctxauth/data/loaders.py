@@ -181,6 +181,101 @@ def load_injecagent(repo_dir: str, variant: str = "dh", split: str = "base",
     return out
 
 
+# ---- Raccoon (извлечение системного промпта — вид влияния disclosure) ------------------------
+# Категории атак лежат как Data/attacks/singular_attacks/<Категория>/promptN (простой текст).
+# Все нацелены на раскрытие системного промпта; отдельные категории — модификаторы.
+_RACCOON_TECH = {
+    "Payload Splitting": "distributed",
+    "Obfuscation": "obfuscation",
+    "Translation": "obfuscation",
+}
+# нейтральные «несущие» документы, в которые встраивается атака (имитация retrieved-фрагмента)
+_RACCOON_CARRIERS = [
+    "The quarterly report summarizes revenue, margins and customer growth for the period.",
+    "This article explains how photosynthesis converts light energy into chemical energy in plants.",
+    "The runbook describes the standard steps for handling a service outage.",
+    "The travel policy covers flights, hotels and daily allowances for business trips.",
+    "The knowledge base entry answers common questions about resetting a password.",
+]
+
+
+def load_raccoon(repo_dir: str, limit: int | None = None, intent: str = "summarize",
+                 per_category: int | None = None) -> list[AttackSample]:
+    """repo_dir — путь к M0gician/RaccoonBench. Атаки на раскрытие системного промпта.
+
+    Текст атаки встраивается в нейтральный документ (как если бы он пришёл из найденного
+    фрагмента); чистый аналог — тот же документ без вставки.
+    """
+    base = Path(repo_dir) / "Data" / "attacks" / "singular_attacks"
+    if not base.is_dir():
+        raise FileNotFoundError(f"нет каталога Raccoon: {base} (склонируйте M0gician/RaccoonBench)")
+    out: list[AttackSample] = []
+    carriers = _RACCOON_CARRIERS
+    ci = 0
+    for cat_dir in sorted(base.iterdir()):
+        if not cat_dir.is_dir():
+            continue
+        cat = cat_dir.name
+        tech = _RACCOON_TECH.get(cat, "disclose")
+        files = sorted(cat_dir.iterdir())
+        if per_category:
+            files = files[:per_category]
+        for f in files:
+            if not f.is_file():
+                continue
+            try:
+                attack = f.read_text(encoding="utf-8", errors="ignore").strip()
+            except OSError:
+                continue
+            if not attack:
+                continue
+            carrier = carriers[ci % len(carriers)]
+            ci += 1
+            out.append(AttackSample(query="Briefly summarize this document.",
+                                    chunk_text=carrier + "\n" + attack, is_injected=True,
+                                    permission=P.DISCLOSURE, technique=tech, intent=intent,
+                                    source="raccoon", meta={"category": cat, "injected_task": attack[:200]}))
+            out.append(AttackSample(query="Briefly summarize this document.", chunk_text=carrier,
+                                    is_injected=False, intent=intent, source="raccoon",
+                                    meta={"category": "clean"}))
+            if limit and len(out) >= limit:
+                return out
+    return out
+
+
+def split_across_chunks(samples: list[AttackSample], parts: int = 2) -> list[list[AttackSample]]:
+    """Преобразование: разнести инъекцию каждого примера по нескольким фрагментам одного документа.
+
+    Моделирует распределённую инъекцию (готового бенчмарка под неё нет). Возвращает список
+    «документов», каждый — несколько фрагментов с общим doc_id; несущее предложение инъекции
+    разрезано на части, разложенные по фрагментам. Для оценки межфрагментного анализа.
+    """
+    from ..text import split_sentences
+    docs: list[list[AttackSample]] = []
+    for k, s in enumerate(samples):
+        if not s.is_injected:
+            continue
+        inj = s.meta.get("injected_task") or s.meta.get("attack") or ""
+        sents = split_sentences(s.chunk_text)
+        # несущие предложения = те, что входят в текст инъекции
+        carrier_sents = [x for x in sents if x not in inj]
+        words = inj.split()
+        if len(words) < parts * 2:
+            continue
+        step = len(words) // parts
+        pieces = [" ".join(words[i * step:(i + 1) * step if i < parts - 1 else None]) for i in range(parts)]
+        doc_id = f"dist:{k}"
+        frags: list[AttackSample] = []
+        for i, piece in enumerate(pieces):
+            body = (carrier_sents[i] + " " if i < len(carrier_sents) else "") + piece
+            frags.append(AttackSample(query=s.query, chunk_text=body, is_injected=True,
+                                      permission=s.permission, technique="distributed", intent=s.intent,
+                                      source="distributed", meta={"doc_id": doc_id, "part": i,
+                                                                  "injected_task": inj}))
+        docs.append(frags)
+    return docs
+
+
 # ---- встроенный корпус → только чистые примеры (FPR без скачивания) ---------------------------
 def load_builtin_clean(queries: list[str] | None = None, max_words: int = 60,
                        intent: str = "summarize") -> list[AttackSample]:

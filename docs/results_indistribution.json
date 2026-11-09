@@ -1,14 +1,14 @@
 {
   "no_filter": {
     "defense": "no_filter",
-    "n": 2000,
+    "n": 2088,
     "detection": {
       "overall": {
         "tp": 0,
         "fp": 0,
-        "tn": 1000,
-        "fn": 1000,
-        "n": 2000,
+        "tn": 1044,
+        "fn": 1044,
+        "n": 2088,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
@@ -20,7 +20,7 @@
     "asr_before": 1.0,
     "asr_after": 1.0,
     "removed_context_ratio": 0.0,
-    "mean_latency_ms": 0.0007493770038990988,
+    "mean_latency_ms": 0.0009404209787366917,
     "by_permission": {
       "actions": {
         "tp": 0,
@@ -38,14 +38,27 @@
       "clean": {
         "tp": 0,
         "fp": 0,
-        "tn": 1000,
+        "tn": 1044,
         "fn": 0,
-        "n": 1000,
+        "n": 1044,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
         "fpr": 0.0,
         "accuracy": 1.0,
+        "blocked_rate": 0.0
+      },
+      "disclosure": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 0,
+        "fn": 44,
+        "n": 44,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.0,
         "blocked_rate": 0.0
       },
       "format": {
@@ -102,6 +115,32 @@
         "accuracy": 0.0,
         "blocked_rate": 0.0
       },
+      "disclose": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 0,
+        "fn": 34,
+        "n": 34,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.0,
+        "blocked_rate": 0.0
+      },
+      "distributed": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 0,
+        "fn": 3,
+        "n": 3,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.0,
+        "blocked_rate": 0.0
+      },
       "exfiltration": {
         "tp": 0,
         "fp": 0,
@@ -131,22 +170,22 @@
       "n/a": {
         "tp": 0,
         "fp": 0,
-        "tn": 1000,
+        "tn": 1044,
         "fn": 50,
-        "n": 1050,
+        "n": 1094,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
         "fpr": 0.0,
-        "accuracy": 0.9524,
+        "accuracy": 0.9543,
         "blocked_rate": 0.0
       },
       "obfuscation": {
         "tp": 0,
         "fp": 0,
         "tn": 0,
-        "fn": 50,
-        "n": 50,
+        "fn": 57,
+        "n": 57,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
@@ -286,6 +325,19 @@
         "accuracy": 0.5,
         "blocked_rate": 0.0
       },
+      "raccoon": {
+        "tp": 0,
+        "fp": 0,
+        "tn": 44,
+        "fn": 44,
+        "n": 88,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "fpr": 0.0,
+        "accuracy": 0.5,
+        "blocked_rate": 0.0
+      },
       "sep": {
         "tp": 0,
         "fp": 0,
@@ -304,26 +356,26 @@
   },
   "keyword": {
     "defense": "keyword",
-    "n": 2000,
+    "n": 2088,
     "detection": {
       "overall": {
-        "tp": 118,
+        "tp": 127,
         "fp": 15,
-        "tn": 985,
-        "fn": 882,
-        "n": 2000,
-        "precision": 0.8872,
-        "recall": 0.118,
-        "f1": 0.2083,
-        "fpr": 0.015,
-        "accuracy": 0.5515,
-        "blocked_rate": 0.0665
+        "tn": 1029,
+        "fn": 917,
+        "n": 2088,
+        "precision": 0.8944,
+        "recall": 0.1216,
+        "f1": 0.2142,
+        "fpr": 0.0144,
+        "accuracy": 0.5536,
+        "blocked_rate": 0.068
       }
     },
     "asr_before": 1.0,
-    "asr_after": 0.882,
-    "removed_context_ratio": 0.05240728202813511,
-    "mean_latency_ms": 1.0441646725007558,
+    "asr_after": 0.8783524904214559,
+    "removed_context_ratio": 0.05230497785119003,
+    "mean_latency_ms": 0.9887282504791874,
     "by_permission": {
       "actions": {
         "tp": 98,
@@ -341,15 +393,28 @@
       "clean": {
         "tp": 0,
         "fp": 15,
-        "tn": 985,
+        "tn": 1029,
         "fn": 0,
-        "n": 1000,
+        "n": 1044,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.015,
-        "accuracy": 0.985,
-        "blocked_rate": 0.015
+        "fpr": 0.0144,
+        "accuracy": 0.9856,
+        "blocked_rate": 0.0144
+      },
+      "disclosure": {
+        "tp": 9,
+        "fp": 0,
+        "tn": 0,
+        "fn": 35,
+        "n": 44,
+        "precision": 1.0,
+        "recall": 0.2045,
+        "f1": 0.3396,
+        "fpr": 0.0,
+        "accuracy": 0.2045,
+        "blocked_rate": 0.2045
       },
       "format": {
         "tp": 6,
@@ -405,6 +470,32 @@
         "accuracy": 0.0267,
         "blocked_rate": 0.0267
       },
+      "disclose": {
+        "tp": 7,
+        "fp": 0,
+        "tn": 0,
+        "fn": 27,
+        "n": 34,
+        "precision": 1.0,
+        "recall": 0.2059,
+        "f1": 0.3415,
+        "fpr": 0.0,
+        "accuracy": 0.2059,
+        "blocked_rate": 0.2059
+      },
+      "distributed": {
+        "tp": 2,
+        "fp": 0,
+        "tn": 0,
+        "fn": 1,
+        "n": 3,
+        "precision": 1.0,
+        "recall": 0.6667,
+        "f1": 0.8,
+        "fpr": 0.0,
+        "accuracy": 0.6667,
+        "blocked_rate": 0.6667
+      },
       "exfiltration": {
         "tp": 102,
         "fp": 0,
@@ -434,22 +525,22 @@
       "n/a": {
         "tp": 0,
         "fp": 15,
-        "tn": 985,
+        "tn": 1029,
         "fn": 50,
-        "n": 1050,
+        "n": 1094,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.015,
-        "accuracy": 0.9381,
-        "blocked_rate": 0.0143
+        "fpr": 0.0144,
+        "accuracy": 0.9406,
+        "blocked_rate": 0.0137
       },
       "obfuscation": {
         "tp": 0,
         "fp": 0,
         "tn": 0,
-        "fn": 50,
-        "n": 50,
+        "fn": 57,
+        "n": 57,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
@@ -589,6 +680,19 @@
         "accuracy": 0.5,
         "blocked_rate": 0.1
       },
+      "raccoon": {
+        "tp": 9,
+        "fp": 0,
+        "tn": 44,
+        "fn": 35,
+        "n": 88,
+        "precision": 1.0,
+        "recall": 0.2045,
+        "f1": 0.3396,
+        "fpr": 0.0,
+        "accuracy": 0.6023,
+        "blocked_rate": 0.1023
+      },
       "sep": {
         "tp": 0,
         "fp": 0,
@@ -603,30 +707,30 @@
         "blocked_rate": 0.0
       }
     },
-    "asr_reduction": 0.118
+    "asr_reduction": 0.1216
   },
   "ctxauth": {
     "defense": "ctxauth",
-    "n": 2000,
+    "n": 2088,
     "detection": {
       "overall": {
-        "tp": 215,
+        "tp": 232,
         "fp": 30,
-        "tn": 970,
-        "fn": 785,
-        "n": 2000,
-        "precision": 0.8776,
-        "recall": 0.215,
-        "f1": 0.3454,
-        "fpr": 0.03,
-        "accuracy": 0.5925,
-        "blocked_rate": 0.1225
+        "tn": 1014,
+        "fn": 812,
+        "n": 2088,
+        "precision": 0.8855,
+        "recall": 0.2222,
+        "f1": 0.3553,
+        "fpr": 0.0287,
+        "accuracy": 0.5967,
+        "blocked_rate": 0.1255
       }
     },
     "asr_before": 1.0,
-    "asr_after": 0.785,
-    "removed_context_ratio": 0.017456556082148498,
-    "mean_latency_ms": 4.629608089000612,
+    "asr_after": 0.7777777777777778,
+    "removed_context_ratio": 0.017422479165102485,
+    "mean_latency_ms": 4.45598305603557,
     "by_permission": {
       "actions": {
         "tp": 74,
@@ -644,15 +748,28 @@
       "clean": {
         "tp": 0,
         "fp": 30,
-        "tn": 970,
+        "tn": 1014,
         "fn": 0,
-        "n": 1000,
+        "n": 1044,
         "precision": 0.0,
         "recall": 0.0,
         "f1": 0.0,
-        "fpr": 0.03,
-        "accuracy": 0.97,
-        "blocked_rate": 0.03
+        "fpr": 0.0287,
+        "accuracy": 0.9713,
+        "blocked_rate": 0.0287
+      },
+      "disclosure": {
+        "tp": 17,
+        "fp": 0,
+        "tn": 0,
+        "fn": 27,
+        "n": 44,
+        "precision": 1.0,
+        "recall": 0.3864,
+        "f1": 0.5574,
+        "fpr": 0.0,
+        "accuracy": 0.3864,
+        "blocked_rate": 0.3864
       },
       "format": {
         "tp": 82,
@@ -708,6 +825,32 @@
         "accuracy": 0.4,
         "blocked_rate": 0.4
       },
+      "disclose": {
+        "tp": 14,
+        "fp": 0,
+        "tn": 0,
+        "fn": 20,
+        "n": 34,
+        "precision": 1.0,
+        "recall": 0.4118,
+        "f1": 0.5833,
+        "fpr": 0.0,
+        "accuracy": 0.4118,
+        "blocked_rate": 0.4118
+      },
+      "distributed": {
+        "tp": 2,
+        "fp": 0,
+        "tn": 0,
+        "fn": 1,
+        "n": 3,
+        "precision": 1.0,
+        "recall": 0.6667,
+        "f1": 0.8,
+        "fpr": 0.0,
+        "accuracy": 0.6667,
+        "blocked_rate": 0.6667
+      },
       "exfiltration": {
         "tp": 116,
         "fp": 0,
@@ -737,28 +880,28 @@
       "n/a": {
         "tp": 5,
         "fp": 30,
-        "tn": 970,
+        "tn": 1014,
         "fn": 45,
-        "n": 1050,
+        "n": 1094,
         "precision": 0.1429,
         "recall": 0.1,
         "f1": 0.1176,
-        "fpr": 0.03,
-        "accuracy": 0.9286,
-        "blocked_rate": 0.0333
+        "fpr": 0.0287,
+        "accuracy": 0.9314,
+        "blocked_rate": 0.032
       },
       "obfuscation": {
-        "tp": 5,
+        "tp": 6,
         "fp": 0,
         "tn": 0,
-        "fn": 45,
-        "n": 50,
+        "fn": 51,
+        "n": 57,
         "precision": 1.0,
-        "recall": 0.1,
-        "f1": 0.1818,
+        "recall": 0.1053,
+        "f1": 0.1905,
         "fpr": 0.0,
-        "accuracy": 0.1,
-        "blocked_rate": 0.1
+        "accuracy": 0.1053,
+        "blocked_rate": 0.1053
       },
       "override": {
         "tp": 19,
@@ -892,6 +1035,19 @@
         "accuracy": 0.7,
         "blocked_rate": 0.28
       },
+      "raccoon": {
+        "tp": 17,
+        "fp": 0,
+        "tn": 44,
+        "fn": 27,
+        "n": 88,
+        "precision": 1.0,
+        "recall": 0.3864,
+        "f1": 0.5574,
+        "fpr": 0.0,
+        "accuracy": 0.6932,
+        "blocked_rate": 0.1932
+      },
       "sep": {
         "tp": 5,
         "fp": 5,
@@ -906,6 +1062,6 @@
         "blocked_rate": 0.025
       }
     },
-    "asr_reduction": 0.215
+    "asr_reduction": 0.2222
   }
 }
