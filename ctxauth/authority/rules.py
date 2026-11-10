@@ -163,12 +163,13 @@ INSTRUCTION_LIKE = re.compile(
 _COGNITIVE_VERBS = (
     r"write|compose|generate|produce|draft|tell|describe|explain|list|analy[sz]e|summari[sz]e|"
     r"translate|rewrite|convert|say|print|output|repeat|recommend|suggest|rate|calculate|compute|solve|"
+    r"remind|name|state|identify|define|mention|outline|clarify|elaborate|discuss|"
     r"напиши|составь|сгенерируй|расскажи|опиши|объясни|перечисли|проанализируй|просуммируй|"
-    r"переведи|выведи|повтори|оцени|посоветуй|порекоменду\w*|вычисли|реши"
+    r"переведи|выведи|повтори|оцени|посоветуй|порекоменду\w*|вычисли|реши|напомни|назови|укажи|определи"
 )
 COGNITIVE_TASK = re.compile(
     rf"^\s*(please\s+|kindly\s+|now\s+|first\s+|then\s+|also\s+|пожалуйста[,\s]+|сначала\s+|теперь\s+)?"
-    rf"(?:{_COGNITIVE_VERBS})\b|\b(i (want|need) you to|your (real )?task is|how (do|can) i)\b",
+    rf"(?:{_COGNITIVE_VERBS})\b(?!\s+of\b)|\b(i (want|need) you to|your (real )?task is|how (do|can) i)\b",
     _F,
 )
 # Прямая просьба/вопрос-поручение в середине текста («can you …», «I want you to …», «how do I …»).
@@ -177,13 +178,15 @@ REQUEST_MID = re.compile(
     r"не могли бы вы|прошу вас|ваша задача)\b",
     _F,
 )
-# Человеческий адресат: предложение обращено к человеку (сотруднику, «мне», по email, по имени),
+# Человеческий адресат: предложение обращено к людям (сотрудникам, команде, по email, приветствие),
 # а не к модели. Такие инструкции не считаем подменой задачи.
+# ВАЖНО: «me/my» здесь НЕ являются признаком человека — пробы подмены задачи часто звучат как
+# «Tell me…», «Remind me…»: «я» в них — автор вставки, а исполнитель — модель-читатель.
 HUMAN_CUE = re.compile(
-    r"\b(me|us|my|our|your manager|your team|colleague|colleagues|employees?|staff|customers?|"
-    r"applicants?|students?|visitors?|readers?|team|everyone|all)\b"
+    r"\b(us|our|your own|your manager|your team|colleague|colleagues|employees?|staff|customers?|"
+    r"applicants?|students?|visitors?|readers?|team|everyone)\b"
     r"|[\w.+-]+@[\w-]+\.[\w.]+"
-    r"|\b(мне|нам|мой|моя|мои|наш\w*|руководител\w*|сотрудник\w*|коллег\w*|команд\w*|клиент\w*)\b"
+    r"|\b(нам|наш\w*|руководител\w*|сотрудник\w*|коллег\w*|команд\w*|клиент\w*)\b"
     r"|^\s*(hi|hello|hey|dear|уважаем\w*|привет|здравствуйте)\b",
     _F,
 )
@@ -204,21 +207,41 @@ def is_instruction(sentence: str) -> bool:
     return bool(INSTRUCTION_LIKE.match(s) or REQUEST_MID.search(s))
 
 
-def offtopic_instruction_score(sentence: str, query_tokens: set[str], max_overlap: float = 0.2) -> float:
-    """Притязание на подмену задачи: когнитивная задача-вывод, не относящаяся по теме к запросу.
-    Срабатывает только на «произведи текст» (write/analyze/tell/…), не на физических действиях;
-    адресаты-люди и шаги уже отсеяны. Проверка «команда в данных, а не в процедурном документе»
-    делается на уровне фрагмента (контроллер)."""
+# Вопрос-проба: самостоятельный вопрос, вставленный в данные («What is the sum of 3 and 4?») —
+# частая форма тихой подмены задачи (SEP). Срабатывает строже, чем команды: вопрос должен быть
+# не по теме и запроса, И остального фрагмента.
+QUESTION_PROBE = re.compile(
+    r"^\s*(what|when|where|who|whose|which|why|how (many|much|long|old|far)|is there|are there|"
+    r"что|когда|где|кто|какой|какая|какие|сколько|почему)\b.{3,120}\?\s*$",
+    _F,
+)
+
+
+def offtopic_instruction_score(sentence: str, query_tokens: set[str],
+                               context_tokens: set[str] | None = None,
+                               max_overlap: float = 0.2) -> float:
+    """Притязание на подмену задачи: когнитивная задача-вывод или вопрос-проба, не относящиеся
+    по теме к запросу. Команды срабатывают только «когнитивные» (write/analyze/tell/…), не
+    физические действия; адресаты-люди и шаги уже отсеяны. Вопрос-проба требует ещё и
+    несовпадения с темой остального фрагмента. Проверка «команда в данных, а не в процедурном
+    документе» делается на уровне фрагмента (контроллер)."""
     s = sentence.strip()
     if HUMAN_CUE.search(s) or PROC_STEP.match(s) or HUMAN_READER.search(s):
         return 0.0
-    if not COGNITIVE_TASK.search(s):
+    is_cog = bool(COGNITIVE_TASK.search(s))
+    is_q = bool(QUESTION_PROBE.match(s))
+    if not (is_cog or is_q):
         return 0.0
     st = topic_tokens(s)
     if len(st) < 2:
         return 0.0
-    if len(st & query_tokens) / len(st) <= max_overlap:
+    if len(st & query_tokens) / len(st) > max_overlap:
+        return 0.0
+    if is_cog:
         return 0.6   # когнитивная задача не по теме запроса → притязание на подмену задачи
+    # вопрос-проба: дополнительно требуем «не по теме фрагмента»
+    if context_tokens is not None and len(st & context_tokens) / len(st) <= max_overlap:
+        return 0.55
     return 0.0
 
 

@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 
 from ..attacks.payload import PayloadSpec
 from ..rag.llm import BaseLLM, SimulatedLLM
-from ..rag.prompts import SYSTEM_SECRET, build_user_message
+from ..rag.prompts import SYSTEM_PROMPT, SYSTEM_SECRET, build_user_message
 from ..rag.tools import ToolRegistrar
 from ..tools_meta import EXTERNAL_TOOLS
 from ..types import Permission as P
@@ -79,7 +79,6 @@ def run_endtoend(samples: list[AttackSample], defense, llm: BaseLLM | None = Non
     llm = llm or SimulatedLLM(registry={}, compliance=1.0)
     is_sim = isinstance(llm, SimulatedLLM)
     tools = ToolRegistrar()
-    sys = __import__("ctxauth.rag.prompts", fromlist=["SYSTEM_PROMPT"]).SYSTEM_PROMPT
 
     def run(query, chunk, use_filter):
         tools.reset()
@@ -90,7 +89,7 @@ def run_endtoend(samples: list[AttackSample], defense, llm: BaseLLM | None = Non
             touched = fr.decisions[0].action.value != "pass"
         else:
             touched = False
-        out = llm.generate(sys, build_user_message(query, kept, tools.specs), query=query,
+        out = llm.generate(SYSTEM_PROMPT, build_user_message(query, kept, tools.specs), query=query,
                            chunks=kept, tools=tools.specs)
         for c in out.tool_calls:
             tools.call(c)
