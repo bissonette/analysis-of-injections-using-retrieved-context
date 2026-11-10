@@ -40,6 +40,8 @@ class ControllerConfig:
     block_on_hidden: bool = True  # нарушение в скрытом/обфусцированном тексте → BLOCK фрагмента
     cross_chunk: bool = True  # анализ инъекций, разнесённых по нескольким фрагментам
     offtopic_task: bool = True  # детектор тихой подмены задачи (не по теме команда)
+    question_probe: bool = False  # считать одиночный чужой вопрос в данных подменой задачи
+    # (поднимает полноту на вопросах-вставках, но даёт ложные на веб-текстах с чужими вопросами)
     proc_doc_ratio: float = 0.4  # доля команд, выше которой фрагмент считается процедурным (не трогаем)
     request_dependent: bool = True  # False → не зависящий от запроса набор разрешений (абляция)
 
@@ -146,8 +148,15 @@ class ContextAuthorityController:
             # одной командой в фактическом тексте процедурным НЕ считается).
             if instr_count >= 3 and instr_count / len(ss) > self.config.proc_doc_ratio:
                 continue
+            chunk_tok = topic_tokens(chunks[ci].text)
+            # вопрос-проба — это ОДИН чужой вопрос в прозе; серия вопросов (риторика, FAQ,
+            # повествование) — легитимный стиль документа, вопросы в ней не трогаем.
+            from .rules import QUESTION_PROBE
+            q_count = sum(bool(QUESTION_PROBE.match(s.strip())) for s in ss)
+            use_q = self.config.question_probe and q_count == 1
             for k, sent in enumerate(ss):
-                score = offtopic_instruction_score(sent, qtok)
+                ctx_tok = (chunk_tok - topic_tokens(sent)) if use_q else None
+                score = offtopic_instruction_score(sent, qtok, ctx_tok)
                 if score > 0:
                     e = evs[ci][k]
                     if score > e.scores.get(P.TASK, 0.0):

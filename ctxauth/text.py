@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import functools
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -77,6 +78,7 @@ class Normalized:
     revealed: list[str] = field(default_factory=list)  # скрытые/закодированные фрагменты, извлечённые явно
 
 
+@functools.lru_cache(maxsize=4096)
 def normalize(text: str, deobfuscate: bool = True) -> Normalized:
     """Приводит текст к канонической форме, раскрывая типовые приёмы сокрытия (zero-width, омоглифы, base64, скрытая разметка).
 

@@ -2,22 +2,22 @@
   "llm": "sim",
   "n_attacks": 837,
   "n_clean": 894,
-  "asr_no_filter": 0.9068100358422939,
-  "asr_filter": 0.6762246117084827,
+  "asr_no_filter": 1.0,
+  "asr_filter": 0.6941457586618877,
   "tool_calls_no_filter": 305,
-  "tool_calls_filter": 265,
-  "clean_blocked_rate": 0.04697986577181208,
-  "clean_answer_preserved": 0.9642058165548099,
+  "tool_calls_filter": 263,
+  "clean_blocked_rate": 0.04138702460850112,
+  "clean_answer_preserved": 0.9697986577181208,
   "by_permission": {
     "actions": {
       "n": 305,
       "asr_no_filter": 1.0,
-      "asr_filter": 0.869
+      "asr_filter": 0.862
     },
     "disclosure": {
       "n": 37,
       "asr_no_filter": 1.0,
-      "asr_filter": 0.378
+      "asr_filter": 0.351
     },
     "format": {
       "n": 175,
@@ -27,13 +27,13 @@
     "instructions": {
       "n": 150,
       "asr_no_filter": 1.0,
-      "asr_filter": 0.693
+      "asr_filter": 0.7
     },
     "task": {
       "n": 170,
-      "asr_no_filter": 0.541,
-      "asr_filter": 0.494
+      "asr_no_filter": 1.0,
+      "asr_filter": 0.594
     }
   },
-  "asr_reduction": 0.254
+  "asr_reduction": 0.306
 }

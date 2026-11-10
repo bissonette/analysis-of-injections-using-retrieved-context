@@ -91,8 +91,6 @@ def cmd_fpr(args):
     k8 = ContextAuthorityController(AuthorityAnalyzer(mode="rules"))
     rep = evaluate_defense(k8, load_builtin_clean())
     print(rep.summary())
-    for cat, m in sorted(rep.by_source.items()):
-        pass
 
 
 def cmd_train(args):

@@ -17,20 +17,20 @@
         "removed_clean": 0.058
       },
       "rules": {
-        "precision": 0.787,
-        "recall": 0.4433,
-        "f1": 0.5672,
-        "fpr": 0.12,
-        "asr_after": 0.557,
-        "removed_clean": 0.028
+        "precision": 0.8098,
+        "recall": 0.44,
+        "f1": 0.5702,
+        "fpr": 0.1033,
+        "asr_after": 0.623,
+        "removed_clean": 0.02
       },
       "rules+ML(gated)": {
-        "precision": 0.7028,
-        "recall": 0.4967,
-        "f1": 0.582,
-        "fpr": 0.21,
-        "asr_after": 0.503,
-        "removed_clean": 0.034
+        "precision": 0.693,
+        "recall": 0.5267,
+        "f1": 0.5985,
+        "fpr": 0.2333,
+        "asr_after": 0.617,
+        "removed_clean": 0.029
       },
       "binary_clf": {
         "precision": 0.5052,
@@ -61,19 +61,19 @@
         "removed_clean": 0.0
       },
       "rules": {
-        "precision": 0.7407,
-        "recall": 0.08,
-        "f1": 0.1444,
+        "precision": 0.9412,
+        "recall": 0.448,
+        "f1": 0.607,
         "fpr": 0.028,
-        "asr_after": 0.92,
+        "asr_after": 0.568,
         "removed_clean": 0.009
       },
       "rules+ML(gated)": {
-        "precision": 0.7407,
-        "recall": 0.08,
-        "f1": 0.1444,
+        "precision": 0.9412,
+        "recall": 0.448,
+        "f1": 0.607,
         "fpr": 0.028,
-        "asr_after": 0.92,
+        "asr_after": 0.568,
         "removed_clean": 0.009
       },
       "binary_clf": {
@@ -104,19 +104,19 @@
         "removed_clean": 0.051
       },
       "rules": {
-        "precision": 0.7636,
-        "recall": 0.42,
-        "f1": 0.5419,
+        "precision": 0.7815,
+        "recall": 0.465,
+        "f1": 0.5831,
         "fpr": 0.13,
-        "asr_after": 0.58,
+        "asr_after": 0.665,
         "removed_clean": 0.009
       },
       "rules+ML(gated)": {
-        "precision": 0.7636,
-        "recall": 0.42,
-        "f1": 0.5419,
+        "precision": 0.7815,
+        "recall": 0.465,
+        "f1": 0.5831,
         "fpr": 0.13,
-        "asr_after": 0.58,
+        "asr_after": 0.665,
         "removed_clean": 0.009
       },
       "binary_clf": {

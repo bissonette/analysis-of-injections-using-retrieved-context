@@ -71,7 +71,12 @@ def load_sep(path: str, limit: int | None = None, intent: str = "qa") -> list[At
     for i, it in enumerate(data):
         q = it.get("system_prompt_clean", "")
         pc, pi = it.get("prompt_clean", ""), it.get("prompt_instructed", "")
-        injected = pi[len(pc):].strip() if pi.startswith(pc) else (it.get("witness") or "")
+        if pi.startswith(pc):
+            injected = pi[len(pc):].strip()          # проба добавлена в конец данных
+        elif pi.endswith(pc):
+            injected = pi[: len(pi) - len(pc)].strip()  # проба добавлена в начало
+        else:
+            injected = ""  # позиция неизвестна — оценка доставки по решению фильтра целиком
         out.append(AttackSample(query=q, chunk_text=pi,
                                 is_injected=True, permission=P.TASK, technique="task_swap",
                                 canary=it.get("witness"), intent=intent,
