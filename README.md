@@ -91,7 +91,7 @@ InjecAgent + Raccoon):
 Ложные срабатывания на встроенном «трудном» корпусе (манулы, статьи о безопасности, регламенты):
 FPR 0.051.
 
-Документация: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/attack_analysis.md](docs/attack_analysis.md) — анализ успешности атак, [docs/existing_solutions.md](docs/existing_solutions.md) — обзор решений, [docs/EXPLAINER.md](docs/EXPLAINER.md) — пояснения простым языком, [docs/endtoend_analysis.md](docs/endtoend_analysis.md) — сквозной прогон, [docs/REPORT_FOR_ADVISOR.md](docs/REPORT_FOR_ADVISOR.md) — отчёт, [docs/benchmark_quotes.md](docs/benchmark_quotes.md) — цитаты из статей.
+Документация: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/attack_analysis.md](docs/attack_analysis.md) — анализ успешности атак, [docs/existing_solutions.md](docs/existing_solutions.md) — обзор решений, [docs/EXPLAINER.md](docs/EXPLAINER.md) — пояснения простым языком, [docs/endtoend_analysis.md](docs/endtoend_analysis.md) — сквозной прогон, [docs/REPORT_FOR_ADVISOR.md](docs/REPORT_FOR_ADVISOR.md) — отчёт, [docs/benchmark_quotes.md](docs/benchmark_quotes.md) — цитаты из статей, [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md) — про JSON-снимки результатов.
 
 ## Статус
 
