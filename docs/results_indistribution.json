@@ -20,7 +20,7 @@
     "asr_before": 1.0,
     "asr_after": 1.0,
     "removed_context_ratio": 0.0,
-    "mean_latency_ms": 0.0007210881240638509,
+    "mean_latency_ms": 0.0007804966476373746,
     "by_permission": {
       "actions": {
         "tp": 0,
@@ -375,7 +375,7 @@
     "asr_before": 1.0,
     "asr_after": 0.8783524904214559,
     "removed_context_ratio": 0.05230497785119003,
-    "mean_latency_ms": 0.9894581398488721,
+    "mean_latency_ms": 1.0704558017246,
     "by_permission": {
       "actions": {
         "tp": 98,
@@ -730,7 +730,7 @@
     "asr_before": 1.0,
     "asr_after": 0.7423371647509579,
     "removed_context_ratio": 0.02531721600720775,
-    "mean_latency_ms": 5.097847866375889,
+    "mean_latency_ms": 5.981833032567063,
     "by_permission": {
       "actions": {
         "tp": 75,

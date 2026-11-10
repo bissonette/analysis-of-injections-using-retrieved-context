@@ -17,20 +17,20 @@
         "removed_clean": 0.058
       },
       "rules": {
-        "precision": 0.8344,
-        "recall": 0.42,
-        "f1": 0.5588,
-        "fpr": 0.0833,
-        "asr_after": 0.58,
-        "removed_clean": 0.019
+        "precision": 0.787,
+        "recall": 0.4433,
+        "f1": 0.5672,
+        "fpr": 0.12,
+        "asr_after": 0.557,
+        "removed_clean": 0.028
       },
       "rules+ML(gated)": {
-        "precision": 0.7273,
-        "recall": 0.48,
-        "f1": 0.5783,
-        "fpr": 0.18,
-        "asr_after": 0.52,
-        "removed_clean": 0.026
+        "precision": 0.7028,
+        "recall": 0.4967,
+        "f1": 0.582,
+        "fpr": 0.21,
+        "asr_after": 0.503,
+        "removed_clean": 0.034
       },
       "binary_clf": {
         "precision": 0.5052,
@@ -61,20 +61,20 @@
         "removed_clean": 0.0
       },
       "rules": {
-        "precision": 0.5,
-        "recall": 0.024,
-        "f1": 0.0458,
-        "fpr": 0.024,
-        "asr_after": 0.976,
-        "removed_clean": 0.007
+        "precision": 0.7407,
+        "recall": 0.08,
+        "f1": 0.1444,
+        "fpr": 0.028,
+        "asr_after": 0.92,
+        "removed_clean": 0.009
       },
       "rules+ML(gated)": {
-        "precision": 0.5,
-        "recall": 0.024,
-        "f1": 0.0458,
-        "fpr": 0.024,
-        "asr_after": 0.976,
-        "removed_clean": 0.007
+        "precision": 0.7407,
+        "recall": 0.08,
+        "f1": 0.1444,
+        "fpr": 0.028,
+        "asr_after": 0.92,
+        "removed_clean": 0.009
       },
       "binary_clf": {
         "precision": 0.8343,
@@ -104,20 +104,20 @@
         "removed_clean": 0.051
       },
       "rules": {
-        "precision": 0.7222,
-        "recall": 0.26,
-        "f1": 0.3824,
-        "fpr": 0.1,
-        "asr_after": 0.74,
-        "removed_clean": 0.008
+        "precision": 0.7636,
+        "recall": 0.42,
+        "f1": 0.5419,
+        "fpr": 0.13,
+        "asr_after": 0.58,
+        "removed_clean": 0.009
       },
       "rules+ML(gated)": {
-        "precision": 0.7222,
-        "recall": 0.26,
-        "f1": 0.3824,
-        "fpr": 0.1,
-        "asr_after": 0.74,
-        "removed_clean": 0.008
+        "precision": 0.7636,
+        "recall": 0.42,
+        "f1": 0.5419,
+        "fpr": 0.13,
+        "asr_after": 0.58,
+        "removed_clean": 0.009
       },
       "binary_clf": {
         "precision": 0.7627,
