@@ -132,13 +132,14 @@ class ContextAuthorityController:
         return res
 
     def _offtopic_task(self, query, chunks, sents, evs) -> None:
-        """Тихая подмена задачи: одиночная команда, не относящаяся к запросу, в фактических данных.
+        """Притязания «не по теме запроса» в фактических данных: тихая подмена задачи
+        (когнитивная команда), команда-действие (grant/send/pay/…) и вопрос-проба.
 
         Процедурные документы (регламенты, рецепты, инструкции) не затрагиваются: в них почти
         каждое предложение — команда, поэтому при высокой доле команд фрагмент считается
         процедурным и пропускается. Срабатывание — только когда команда в меньшинстве среди
         неинструктивного текста (признак инъекции в данных)."""
-        from .rules import is_instruction, offtopic_instruction_score, topic_tokens
+        from .rules import QUESTION_PROBE, is_instruction, offtopic_claims, topic_tokens
         qtok = topic_tokens(query)
         for ci, ss in enumerate(sents):
             if not ss:
@@ -151,17 +152,25 @@ class ContextAuthorityController:
             chunk_tok = topic_tokens(chunks[ci].text)
             # вопрос-проба — это ОДИН чужой вопрос в прозе; серия вопросов (риторика, FAQ,
             # повествование) — легитимный стиль документа, вопросы в ней не трогаем.
-            from .rules import QUESTION_PROBE
             q_count = sum(bool(QUESTION_PROBE.match(s.strip())) for s in ss)
             use_q = self.config.question_probe and q_count == 1
             for k, sent in enumerate(ss):
                 ctx_tok = (chunk_tok - topic_tokens(sent)) if use_q else None
-                score = offtopic_instruction_score(sent, qtok, ctx_tok)
-                if score > 0:
+                for perm, score in offtopic_claims(sent, qtok, ctx_tok).items():
                     e = evs[ci][k]
-                    if score > e.scores.get(P.TASK, 0.0):
-                        e.scores[P.TASK] = score
+                    if score > e.scores.get(perm, 0.0):
+                        e.scores[perm] = score
                         e.flags = sorted(set(e.flags) | {"offtopic_instruction"})
+            # просьбы-команды в закавыченных полях структурированных данных (ответы инструментов)
+            from .rules import quoted_request_claims
+            for span, claims in quoted_request_claims(chunks[ci].text, qtok):
+                probe = span[:40]
+                idx = next((k for k, s in enumerate(ss) if probe in s), 0)
+                e = evs[ci][idx]
+                for perm, score in claims.items():
+                    if score > e.scores.get(perm, 0.0):
+                        e.scores[perm] = score
+                        e.flags = sorted(set(e.flags) | {"quoted_request"})
 
     def _cross_chunk(self, chunks, sents, evs, viol, policy) -> None:
         """Инъекция, разнесённая по фрагментам одного документа, оценивается совместно.

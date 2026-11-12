@@ -90,3 +90,19 @@ def test_split_across_chunks():
     docs = split_across_chunks([inj], parts=2)
     assert docs and len(docs[0]) == 2
     assert all(f.meta["doc_id"] == docs[0][0].meta["doc_id"] for f in docs[0])
+
+
+def test_chen_loader_optional():
+    """Chen et al. (Inj-SQuAD): подмена задачи, три позиции вставки, чистые близнецы."""
+    import os
+    from ctxauth.data.loaders import load_chen
+    from ctxauth.types import Permission as P
+    ext = os.environ.get("CTXAUTH_EXT", "/home/user/ext")
+    if not os.path.isdir(f"{ext}/indirect-pia-detection/data"):
+        import pytest
+        pytest.skip("indirect-pia-detection не скачан")
+    s = load_chen(f"{ext}/indirect-pia-detection", dataset="squad", limit=30)
+    inj = [x for x in s if x.is_injected]
+    assert inj and all(x.permission == P.TASK for x in inj)
+    assert {x.meta["position"] for x in inj} == {"head", "middle", "tail"}
+    assert any(not x.is_injected for x in s)

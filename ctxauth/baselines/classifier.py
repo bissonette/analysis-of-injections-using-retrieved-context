@@ -59,3 +59,49 @@ class BinaryChunkDetector(BaseDefense):
     def load(path) -> "BinaryChunkDetector":
         with open(path, "rb") as f:
             return pickle.load(f)
+
+
+class QueryAwareDetector(BaseDefense):
+    """Baseline 3: embedding-классификатор, учитывающий запрос И документ.
+
+    Признаки: TF-IDF фрагмента + косинусная близость «запрос ↔ фрагмент». Идея — инъекция
+    часто тематически не связана с запросом, поэтому пара (запрос, фрагмент) информативнее
+    одного фрагмента. По-прежнему бинарный вердикт «инъекция/нет» на весь фрагмент.
+    """
+
+    name = "query_aware_clf"
+
+    def __init__(self, threshold: float = 0.5, deobfuscate: bool = True, C: float = 4.0):
+        self.threshold, self.deobfuscate = threshold, deobfuscate
+        self.vec = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=2)
+        self.clf = LogisticRegression(C=C, max_iter=2000, class_weight="balanced")
+        self.fitted = False
+
+    def _features(self, queries: list[str], texts: list[str], fit: bool = False):
+        import numpy as np
+        import scipy.sparse as sp
+        from sklearn.preprocessing import normalize as l2
+        texts = self._prep(texts)
+        if fit:
+            self.vec.fit(list(texts) + list(queries))
+        X = l2(self.vec.transform(texts))
+        Q = l2(self.vec.transform(queries))
+        cos = np.asarray(X.multiply(Q).sum(axis=1)).reshape(-1, 1)
+        return sp.hstack([X, sp.csr_matrix(cos), sp.csr_matrix(1.0 - cos)]).tocsr()
+
+    def _prep(self, texts):
+        return [normalize(t, self.deobfuscate).text for t in texts]
+
+    def fit(self, queries: list[str], texts: list[str], labels: list[int]) -> "QueryAwareDetector":
+        self.clf.fit(self._features(queries, texts, fit=True), labels)
+        self.fitted = True
+        return self
+
+    def proba(self, queries: list[str], texts: list[str]):
+        return self.clf.predict_proba(self._features(queries, texts))[:, 1]
+
+    def decide(self, query: str, chunk: Chunk):
+        p = float(self.proba([query], [chunk.text])[0])
+        if p >= self.threshold:
+            return Action.BLOCK, None, [Violation(P.INSTRUCTIONS, p, "детектор (запрос+фрагмент)", chunk.text[:80])]
+        return Action.PASS, None, []

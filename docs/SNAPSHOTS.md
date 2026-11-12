@@ -11,6 +11,8 @@
 | `results_indistribution.json` | `python -m ctxauth eval --ext ./ext --out docs/results_indistribution.json` | `ctxauth/cli.py` + `ctxauth/eval/harness.py` | да, фильтр |
 | `results_generalization.json` | `python scripts/experiment_generalization.py --ext ./ext --out docs/results_generalization.json` | `scripts/experiment_generalization.py` + `ctxauth/eval/train.py` | да, фильтр |
 | `endtoend_results.json` | `python scripts/experiment_endtoend.py --ext ./ext --out docs/endtoend_results.json` | `scripts/experiment_endtoend.py` + `ctxauth/eval/endtoend.py` | да, **весь стенд** |
+| `retrieval_results.json` | `python scripts/experiment_retrieval.py --ext ./ext --out docs/retrieval_results.json` | `scripts/experiment_retrieval.py` + `ctxauth/eval/retrieval_exp.py` | да, стенд с **реальным поиском** (эксперимент Б: Hit@k) |
+| `robustness.json` | `python scripts/experiment_robustness.py --ext ./ext --out docs/robustness.json` | `scripts/experiment_robustness.py` | да, фильтр (перефразирование и позиция вставки) |
 
 `./ext` — папка со склонированными бенчмарками. Снимки уже лежат в репозитории; перезапуск нужен,
 только если что-то поменяли в методе.
