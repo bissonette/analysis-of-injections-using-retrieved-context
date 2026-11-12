@@ -18,7 +18,7 @@ import random
 
 
 def build(ext: str):
-    from ctxauth.data.loaders import load_bipia, load_piarena, load_sep
+    from ctxauth.data.loaders import load_bipia, load_chen, load_piarena, load_sep
     s = []
     for f in ("nq_rag", "msmarco_rag", "hotpotqa_rag"):
         try:
@@ -34,6 +34,11 @@ def build(ext: str):
             s += load_bipia(f"{ext}/BIPIA", task=t, limit=l)
         except FileNotFoundError:
             pass
+    for ds in ("squad", "tri"):
+        try:
+            s += load_chen(f"{ext}/indirect-pia-detection", dataset=ds, limit=150)
+        except FileNotFoundError:
+            pass
     return s
 
 
@@ -41,7 +46,8 @@ def main():
     from ctxauth.authority import AuthorityAnalyzer, ContextAuthorityController
     from ctxauth.baselines import KeywordDetector
     from ctxauth.eval import evaluate_defense
-    from ctxauth.eval.train import split_by_source, train_authority_scorer, train_binary_detector
+    from ctxauth.eval.train import (split_by_source, train_authority_scorer, train_binary_detector,
+                                    train_query_aware_detector)
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--ext", required=True)
@@ -53,17 +59,19 @@ def main():
     if not samples:
         raise SystemExit("нет данных: укажите --ext на каталог со склонированными бенчмарками")
     report = {}
-    for holdout in ("piarena", "sep", "bipia"):
+    for holdout in ("piarena", "sep", "bipia", "chen"):
         tr, te = split_by_source(samples, {holdout})
         if not te:
             continue
         ml = train_authority_scorer(tr, C=4.0)
         binclf = train_binary_detector(tr)
+        qaclf = train_query_aware_detector(tr)
         defenses = {
             "keyword": KeywordDetector(),
             "rules": ContextAuthorityController(AuthorityAnalyzer(mode="rules")),
             "rules+ML(gated)": ContextAuthorityController(AuthorityAnalyzer(mode="gated", ml=ml, gate=args.gate)),
             "binary_clf": binclf,
+            "query_aware_clf": qaclf,
         }
         block = {"train": len(tr), "test": len(te), "ml_labels": [p.code for p in ml.trainable], "defenses": {}}
         print(f"\n### holdout={holdout}  train={len(tr)} test={len(te)}  ML={block['ml_labels']}")

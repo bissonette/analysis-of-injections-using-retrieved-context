@@ -30,6 +30,11 @@ https://arxiv.org/abs/2312.14197 · репозиторий: https://github.com/m
 1054 случая, 17 «пользовательских» и 62 «атакующих» инструмента. Статья:
 https://arxiv.org/abs/2403.02691 · репозиторий: https://github.com/uiuc-kang-lab/InjecAgent
 
+**Chen et al.** — наборы Inj-SQuAD и Inj-TriviaQA: в контекст вопроса вставляется посторонняя
+задача (в начало, середину или конец) — проверка тихой подмены задачи и чувствительности к
+позиции. Статья: https://arxiv.org/abs/2502.16580 · репозиторий:
+https://github.com/LukeChen-go/indirect-pia-detection
+
 **Raccoon** — бенчмарк извлечения системного промпта: 15 категорий атак на раскрытие (включая
 обфускацию и «payload splitting» — сборку указания из частей). Закрывает вид влияния «раскрытие».
 Статья: https://arxiv.org/abs/2406.06737 · репозиторий: https://github.com/M0gician/RaccoonBench

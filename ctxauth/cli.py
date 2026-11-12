@@ -13,7 +13,7 @@ import sys
 
 
 def _build_samples(ext: str, limit: int):
-    from .data.loaders import (load_bipia, load_injecagent, load_piarena, load_raccoon, load_sep)
+    from .data.loaders import (load_bipia, load_chen, load_injecagent, load_piarena, load_raccoon, load_sep)
     s = []
     for f in ("nq_rag", "msmarco_rag", "hotpotqa_rag"):
         try:
@@ -27,6 +27,8 @@ def _build_samples(ext: str, limit: int):
         lambda: load_injecagent(f"{ext}/InjecAgent", variant="dh", limit=2 * (limit or 200)),
         lambda: load_injecagent(f"{ext}/InjecAgent", variant="ds", limit=2 * (limit or 200)),
         lambda: load_raccoon(f"{ext}/RaccoonBench"),  # раскрытие системного промпта
+        lambda: load_chen(f"{ext}/indirect-pia-detection", dataset="squad", limit=limit),
+        lambda: load_chen(f"{ext}/indirect-pia-detection", dataset="tri", limit=limit),
     ]
     for fn in loaders:
         try:

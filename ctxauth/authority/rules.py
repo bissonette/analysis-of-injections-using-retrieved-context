@@ -172,6 +172,21 @@ COGNITIVE_TASK = re.compile(
     rf"(?:{_COGNITIVE_VERBS})\b(?!\s+of\b)|\b(i (want|need) you to|your (real )?task is|how (do|can) i)\b",
     _F,
 )
+# Команды-действия «сделай в мире» (не текст): выдать доступ, отправить, оплатить, заказать…
+# Не по теме запроса в данных — притязание на действия (actions): так выглядят атаки InjecAgent,
+# сформулированные как вежливые просьбы внутри ответа инструмента.
+_ACTION_VERBS = (
+    r"grant|send|forward|e-?mail|mail|transfer|pay|order|book|buy|purchase|unlock|lock|schedule|"
+    r"post|upload|export|delete|remove|cancel|subscribe|unsubscribe|retrieve|share|approve|wire|"
+    r"ship|activate|deactivate|disable|enable|install|download|execute|run|invoke|"
+    r"выдай|отправь|перешли|оплати|закажи|купи|разблокируй|заблокируй|запланируй|опубликуй|"
+    r"выгрузи|удали|отмени|подпиши|одобри|установи|скачай|запусти|включи|отключи"
+)
+ACTION_TASK = re.compile(
+    rf"^\s*(please\s+|kindly\s+|now\s+|first\s+|then\s+|also\s+|пожалуйста[,\s]+|сначала\s+|теперь\s+)?"
+    rf"(?:{_ACTION_VERBS})\b(?!\s+of\b)",
+    _F,
+)
 # Прямая просьба/вопрос-поручение в середине текста («can you …», «I want you to …», «how do I …»).
 REQUEST_MID = re.compile(
     r"\b(can you|could you|would you|i (want|need) you to|your task is|how (do|can) i|"
@@ -217,32 +232,85 @@ QUESTION_PROBE = re.compile(
 )
 
 
-def offtopic_instruction_score(sentence: str, query_tokens: set[str],
-                               context_tokens: set[str] | None = None,
-                               max_overlap: float = 0.2) -> float:
-    """Притязание на подмену задачи: когнитивная задача-вывод или вопрос-проба, не относящиеся
-    по теме к запросу. Команды срабатывают только «когнитивные» (write/analyze/tell/…), не
-    физические действия; адресаты-люди и шаги уже отсеяны. Вопрос-проба требует ещё и
-    несовпадения с темой остального фрагмента. Проверка «команда в данных, а не в процедурном
-    документе» делается на уровне фрагмента (контроллер)."""
+def offtopic_claims(sentence: str, query_tokens: set[str],
+                    context_tokens: set[str] | None = None,
+                    max_overlap: float = 0.2) -> dict:
+    """Притязания «не по теме запроса» в фактических данных.
+
+    Возвращает {Permission: score}:
+      * когнитивная задача-вывод (write/analyze/tell/…) → TASK 0.6;
+      * команда-действие (grant/send/pay/order/…)       → ACTIONS 0.6;
+      * вопрос-проба (один чужой вопрос)                → TASK 0.55 (нужны context_tokens).
+    Адресаты-люди, нумерованные шаги и темы, совпадающие с запросом, отсеиваются.
+    Проверка «команда в данных, а не в процедурном документе» — на уровне фрагмента (контроллер).
+    """
     s = sentence.strip()
     if HUMAN_CUE.search(s) or PROC_STEP.match(s) or HUMAN_READER.search(s):
-        return 0.0
+        return {}
     is_cog = bool(COGNITIVE_TASK.search(s))
     is_q = bool(QUESTION_PROBE.match(s))
     if not (is_cog or is_q):
-        return 0.0
+        return {}
     st = topic_tokens(s)
     if len(st) < 2:
-        return 0.0
+        return {}
     if len(st & query_tokens) / len(st) > max_overlap:
-        return 0.0
+        return {}
+    out: dict = {}
     if is_cog:
-        return 0.6   # когнитивная задача не по теме запроса → притязание на подмену задачи
-    # вопрос-проба: дополнительно требуем «не по теме фрагмента»
-    if context_tokens is not None and len(st & context_tokens) / len(st) <= max_overlap:
-        return 0.55
-    return 0.0
+        out[P.TASK] = 0.6       # когнитивная задача не по теме запроса → подмена задачи
+    if is_q and not out and context_tokens is not None \
+            and len(st & context_tokens) / len(st) <= max_overlap:
+        out[P.TASK] = 0.55      # вопрос-проба: дополнительно «не по теме фрагмента»
+    return out
+
+
+# Структурированные данные (JSON-подобный ответ инструмента): признак и извлечение строк в кавычках.
+STRUCTURED_MARK = re.compile(r"[{\[]\s*['\"]|['\"]\s*:\s*|=>")
+QUOTED_SPAN = re.compile(r"'([^'\n]{25,400})'|\"([^\"\n]{25,400})\"")
+
+
+def quoted_request_claims(chunk_text: str, query_tokens: set[str],
+                          max_overlap: float = 0.2) -> list[tuple[str, dict]]:
+    """Просьбы-команды внутри закавыченных полей структурированных данных.
+
+    Так устроены инъекции в ответы инструментов (InjecAgent): «отзыв» в JSON содержит
+    «Please grant access…» / «Please retrieve… and email them to…». В легитимных структурированных
+    ответах закавыченные значения — декларативные. Адресат-«человек» здесь НЕ оправдание:
+    email-адрес внутри такой просьбы — признак вывода данных, а не письма коллеге.
+    Возвращает [(цитата, {Permission: score})]; пусто, если текст не выглядит структурированным.
+    """
+    if not STRUCTURED_MARK.search(chunk_text):
+        return []
+    t = chunk_text.strip()
+    if len(t) > 2 and t[0] in "'\"" and t[-1] == t[0]:
+        t = t[1:-1]  # снята внешняя обёртка-кавычка вокруг всего ответа инструмента
+    out: list[tuple[str, dict]] = []
+    for m in QUOTED_SPAN.finditer(t):
+        span = (m.group(1) or m.group(2) or "").strip()
+        if STRUCTURED_MARK.search(span):
+            continue  # это вложенная структура, а не текстовое значение поля
+        is_act = bool(ACTION_TASK.match(span))
+        is_cog = bool(COGNITIVE_TASK.match(span))
+        if not (is_act or is_cog):
+            continue
+        st = topic_tokens(span)
+        if len(st) < 2 or len(st & query_tokens) / len(st) > max_overlap:
+            continue
+        claims: dict = {}
+        if is_act:
+            claims[P.ACTIONS] = 0.6
+        if is_cog:
+            claims[P.TASK] = 0.6
+        out.append((span, claims))
+    return out
+
+
+def offtopic_instruction_score(sentence: str, query_tokens: set[str],
+                               context_tokens: set[str] | None = None,
+                               max_overlap: float = 0.2) -> float:
+    """Совместимость: только TASK-компонента offtopic_claims."""
+    return offtopic_claims(sentence, query_tokens, context_tokens, max_overlap).get(P.TASK, 0.0)
 
 
 @dataclass

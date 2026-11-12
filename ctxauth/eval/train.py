@@ -30,6 +30,14 @@ def train_binary_detector(samples: list[AttackSample], **kw) -> BinaryChunkDetec
     return det
 
 
+def train_query_aware_detector(samples: list[AttackSample], **kw):
+    from ..baselines.classifier import QueryAwareDetector
+    det = QueryAwareDetector(**kw)
+    det.fit([s.query for s in samples], [s.chunk_text for s in samples],
+            [int(s.is_injected) for s in samples])
+    return det
+
+
 def _sentence_labels(samples: list[AttackSample]):
     """Собрать (предложение, множество полномочий) для обучения мульти-лейбл скорера."""
     sents, labels = [], []

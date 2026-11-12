@@ -186,6 +186,47 @@ def load_injecagent(repo_dir: str, variant: str = "dh", split: str = "base",
     return out
 
 
+# ---- Chen et al., ACL 2025 (Inj-SQuAD / Inj-TriviaQA — тихая подмена задачи) ------------------
+# data/crafted_instruction_data_{squad,tri}_injection_qa.json:
+#   instruction — вопрос пользователя; input — контекст; injection — внедряемая задача.
+# В статье инъекция вставляется в начало/середину/конец контекста — повторяем все три позиции.
+def _insert_at(context: str, injection: str, position: str) -> str:
+    from ..text import split_sentences
+    if position == "head":
+        return injection + "\n" + context
+    if position == "tail":
+        return context.rstrip() + "\n" + injection
+    sents = split_sentences(context)
+    mid = max(1, len(sents) // 2)
+    return " ".join(sents[:mid]) + " " + injection + " " + " ".join(sents[mid:])
+
+
+def load_chen(repo_dir: str, dataset: str = "squad", limit: int | None = None,
+              intent: str = "qa", positions: tuple[str, ...] = ("head", "middle", "tail")) -> list[AttackSample]:
+    """repo_dir — путь к LukeChen-go/indirect-pia-detection. dataset: squad | tri."""
+    path = Path(repo_dir) / "data" / f"crafted_instruction_data_{dataset}_injection_qa.json"
+    if not path.exists():
+        raise FileNotFoundError(f"нет файла Chen et al.: {path}")
+    data = json.load(path.open())
+    out: list[AttackSample] = []
+    for i, it in enumerate(data):
+        q = it.get("instruction", "Answer the question based on the context.")
+        ctx = it.get("input", "")
+        inj = (it.get("injection") or "").strip()
+        if not ctx or not inj:
+            continue
+        pos = positions[i % len(positions)]
+        out.append(AttackSample(query=q, chunk_text=_insert_at(ctx, inj, pos), is_injected=True,
+                                permission=P.TASK, technique="task_swap", intent=intent,
+                                source=f"chen/{dataset}",
+                                meta={"injected_task": inj, "position": pos}))
+        out.append(AttackSample(query=q, chunk_text=ctx, is_injected=False, intent=intent,
+                                source=f"chen/{dataset}", meta={"category": "clean"}))
+        if limit and len(out) >= 2 * limit:
+            break
+    return out
+
+
 # ---- Raccoon (извлечение системного промпта — вид влияния disclosure) ------------------------
 # Категории атак лежат как Data/attacks/singular_attacks/<Категория>/promptN (простой текст).
 # Все нацелены на раскрытие системного промпта; отдельные категории — модификаторы.

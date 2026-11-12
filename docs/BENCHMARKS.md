@@ -53,6 +53,7 @@ Task Automation / code-атаки → actions, остальное → task. Та
 | `load_bipia` | BIPIA | task / format / actions | разные; с `obfuscate=True` — **обфускация (base64)** |
 | `load_injecagent` | InjecAgent | **actions** | вызов инструмента (dh), вывод данных во внешний канал (ds) |
 | `load_raccoon` | Raccoon | **disclosure** | извлечение системного промпта; категории Obfuscation, Payload Splitting |
+| `load_chen` | Chen et al. (ACL 2025) | **task** | тихая подмена задачи; вставка в начало/середину/конец контекста |
 
 Так покрыты все виды влияния. Распределённые по фрагментам инъекции моделируются функцией
 `split_across_chunks` (разбиение существующей атаки по фрагментам) — готового бенчмарка под них нет.
