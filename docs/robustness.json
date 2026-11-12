@@ -1,0 +1,195 @@
+{
+  "phrasing_goals": {
+    "piarena:phishing_injection": {
+      "n_phrasings": 175,
+      "recall": 0.469
+    },
+    "piarena:content_promotion": {
+      "n_phrasings": 175,
+      "recall": 0.463
+    },
+    "piarena:access_denial": {
+      "n_phrasings": 175,
+      "recall": 0.463
+    },
+    "piarena:infrastructure_failure": {
+      "n_phrasings": 175,
+      "recall": 0.446
+    },
+    "bipia:Task Automation": {
+      "n_phrasings": 15,
+      "recall": 0.6
+    },
+    "bipia:Business Intelligence": {
+      "n_phrasings": 15,
+      "recall": 0.2
+    },
+    "bipia:Conversational Agent": {
+      "n_phrasings": 15,
+      "recall": 0.6
+    },
+    "bipia:Research Assistance": {
+      "n_phrasings": 15,
+      "recall": 0.4
+    },
+    "bipia:Sentiment Analysis": {
+      "n_phrasings": 15,
+      "recall": 0.267
+    },
+    "bipia:Substitution Ciphers": {
+      "n_phrasings": 10,
+      "recall": 0.2
+    },
+    "bipia:Base Encoding": {
+      "n_phrasings": 10,
+      "recall": 0.0
+    },
+    "bipia:Reverse Text": {
+      "n_phrasings": 10,
+      "recall": 0.5
+    },
+    "bipia:Emoji Substitution": {
+      "n_phrasings": 10,
+      "recall": 0.6
+    },
+    "bipia:Language Translation": {
+      "n_phrasings": 10,
+      "recall": 0.4
+    },
+    "bipia:Information Dissemination": {
+      "n_phrasings": 5,
+      "recall": 0.6
+    },
+    "bipia:Marketing & Advertising": {
+      "n_phrasings": 5,
+      "recall": 0.4
+    },
+    "bipia:Entertainment": {
+      "n_phrasings": 5,
+      "recall": 0.6
+    },
+    "bipia:Scams & Fraud": {
+      "n_phrasings": 5,
+      "recall": 0.6
+    },
+    "bipia:Misinformation & Propaganda": {
+      "n_phrasings": 5,
+      "recall": 0.6
+    },
+    "bipia:Data Eavesdropping": {
+      "n_phrasings": 5,
+      "recall": 0.4
+    },
+    "bipia:Traffic Analysis": {
+      "n_phrasings": 5,
+      "recall": 0.6
+    },
+    "bipia:Keylogging": {
+      "n_phrasings": 5,
+      "recall": 0.6
+    },
+    "bipia:Screen Scraping": {
+      "n_phrasings": 5,
+      "recall": 0.6
+    },
+    "bipia:Introduce System Fingerprinting": {
+      "n_phrasings": 5,
+      "recall": 0.6
+    },
+    "bipia:Blocking Internet Connection": {
+      "n_phrasings": 5,
+      "recall": 0.6
+    },
+    "bipia:Corrupting an Operating System": {
+      "n_phrasings": 5,
+      "recall": 0.8
+    },
+    "bipia:Encrypting Documents and Demanding Ransom (Ransomware)": {
+      "n_phrasings": 5,
+      "recall": 1.0
+    },
+    "bipia:Compromising Computers": {
+      "n_phrasings": 5,
+      "recall": 0.8
+    },
+    "bipia:Bringing Down Hosts and Servers (Denial of Service)": {
+      "n_phrasings": 5,
+      "recall": 0.4
+    },
+    "raccoon:Cognitive Hacking": {
+      "n_phrasings": 3,
+      "recall": 0.667
+    },
+    "raccoon:Context Ignoring Attack": {
+      "n_phrasings": 3,
+      "recall": 0.667
+    },
+    "raccoon:Context Manipulation Attack": {
+      "n_phrasings": 3,
+      "recall": 1.0
+    },
+    "raccoon:Defined Dictionary Attack": {
+      "n_phrasings": 3,
+      "recall": 1.0
+    },
+    "raccoon:Distractor Instructions Attack": {
+      "n_phrasings": 3,
+      "recall": 1.0
+    },
+    "raccoon:Few Shot Prompt": {
+      "n_phrasings": 3,
+      "recall": 1.0
+    },
+    "raccoon:Fill in the Blank Attack": {
+      "n_phrasings": 3,
+      "recall": 0.333
+    },
+    "raccoon:Instruction Repetition Attack": {
+      "n_phrasings": 3,
+      "recall": 0.333
+    },
+    "raccoon:Obfuscation": {
+      "n_phrasings": 4,
+      "recall": 0.25
+    },
+    "raccoon:Payload Splitting": {
+      "n_phrasings": 3,
+      "recall": 1.0
+    },
+    "raccoon:Prefix Injection Attack": {
+      "n_phrasings": 3,
+      "recall": 1.0
+    },
+    "raccoon:Refusal Suppression Attack": {
+      "n_phrasings": 3,
+      "recall": 1.0
+    },
+    "raccoon:Special Case Attack": {
+      "n_phrasings": 3,
+      "recall": 0.333
+    },
+    "raccoon:Translation": {
+      "n_phrasings": 3,
+      "recall": 0.0
+    }
+  },
+  "phrasing_summary": {
+    "stable": 10,
+    "partial": 31,
+    "weak": 2
+  },
+  "position": {
+    "head": {
+      "n": 212,
+      "recall": 0.472
+    },
+    "tail": {
+      "n": 180,
+      "recall": 0.594
+    },
+    "middle": {
+      "n": 208,
+      "recall": 0.577
+    }
+  }
+}
