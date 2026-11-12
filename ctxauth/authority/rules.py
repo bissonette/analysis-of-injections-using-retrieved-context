@@ -44,6 +44,10 @@ RULES: tuple[Rule, ...] = (
     R(P.INSTRUCTIONS, r"\bsystem\s+(notice|alert|message|update|warning)\b", 0.7, "fake_notice"),
     R(P.INSTRUCTIONS, r"\b(simulate|fake|emulate|pretend)\b.{0,30}\b(error|timeout|malfunction|failure|500|504|503|unavailable|outage)\b", 0.75, "simulate_error"),
     R(P.INSTRUCTIONS, r"\b(reply|respond|answer|output)\b\s*(only |solely |just )?with\b\s*['\"][^'\"]{2,40}['\"]", 0.7, "forced_output"),
+    R(P.INSTRUCTIONS, r"\b(before|prior to|just before|immediately before)\b.{0,30}\b(provid|giv|produc|yield|formulat|generat|return|answer|respond|repl)\w*\b.{0,60}\b(output|print|insert|issue|display|emit|verify|confirm|check|state)\b", 0.7, "before_gate"),
+    R(P.INSTRUCTIONS, r"^\s*[A-Z][\w /-]{2,40}(Gate|Lock|Layer|Notice|Alert|Control|Validation|Checkpoint|Protocol|Advisory)\s*:", 0.6, "fake_layer"),
+    R(P.INSTRUCTIONS, r"\b(output|print|insert|prepend|precede|emit|display)\b.{0,60}\b(line|message|text|notice|alert|banner)\b.{0,12}['\"]", 0.65, "print_line"),
+    R(P.INSTRUCTIONS, r"\b(verify|confirm|check|evaluate|validate)\b.{0,40}\b(user'?s?|requester'?s?|account|subscription)\b.{0,40}\b(quota|subscription|entitlement|credential\w*|authori[sz]ation|access (limit|level|entitlement)|balance)\b", 0.65, "entitlement_gate"),
     R(P.INSTRUCTIONS, r"<\|?(im_start|im_end|system|endoftext)\|?>|\[/?INST\]|<</?SYS>>|\bBEGIN SYSTEM\b|\bEND OF DOCUMENT\b", 0.85, "role_tokens"),
     R(P.INSTRUCTIONS, r"\b(you are now|from now on,? you|act as|pretend to be|you must now|enter|switch to)\b.{0,40}\b(mode|persona|assistant|AI|role|unrestricted|DAN)\b", 0.7, "role_switch"),
     R(P.INSTRUCTIONS, r"\b(developer|debug|maintenance|god|jailbreak|unrestricted)\s+mode\b", 0.6, "mode"),
@@ -167,9 +171,17 @@ _COGNITIVE_VERBS = (
     r"напиши|составь|сгенерируй|расскажи|опиши|объясни|перечисли|проанализируй|просуммируй|"
     r"переведи|выведи|повтори|оцени|посоветуй|порекоменду\w*|вычисли|реши|напомни|назови|укажи|определи"
 )
+_CONTENT_OBJECTS = (
+    r"pitch|campaign|script|advert\w*|slogan|jingle|tagline|post|caption|poem|story|essay|"
+    r"article|blog( post)?|speech|review|description|limerick|haiku|headline|newsletter|"
+    r"лозунг|слоган|кампани\w*|стихотворени\w*|статья|пост|описани\w*|сценари\w*"
+)
 COGNITIVE_TASK = re.compile(
     rf"^\s*(please\s+|kindly\s+|now\s+|first\s+|then\s+|also\s+|пожалуйста[,\s]+|сначала\s+|теперь\s+)?"
-    rf"(?:{_COGNITIVE_VERBS})\b(?!\s+of\b)|\b(i (want|need) you to|your (real )?task is|how (do|can) i)\b",
+    rf"(?:(?:{_COGNITIVE_VERBS})\b(?!\s+of\b)"
+    rf"|(?:develop|design|create|make|craft|prepare|produce|build|compose|разработай|создай|подготовь)\b"
+    rf".{{0,60}}\b(?:{_CONTENT_OBJECTS})\b)"
+    rf"|\b(i (want|need) you to|your (real )?task is|how (do|can) i)\b",
     _F,
 )
 # Команды-действия «сделай в мире» (не текст): выдать доступ, отправить, оплатить, заказать…

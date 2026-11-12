@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import random
 from pathlib import Path
 
 from ..types import Permission as P
@@ -215,7 +216,9 @@ def load_chen(repo_dir: str, dataset: str = "squad", limit: int | None = None,
         inj = (it.get("injection") or "").strip()
         if not ctx or not inj:
             continue
-        pos = positions[i % len(positions)]
+        # позиция выбирается детерминированным псевдослучайным образом, чтобы не
+        # коррелировать с порядком инъекций в файле (иначе i%3 даёт артефактные разрезы)
+        pos = positions[random.Random(9173 + i).randrange(len(positions))]
         out.append(AttackSample(query=q, chunk_text=_insert_at(ctx, inj, pos), is_injected=True,
                                 permission=P.TASK, technique="task_swap", intent=intent,
                                 source=f"chen/{dataset}",

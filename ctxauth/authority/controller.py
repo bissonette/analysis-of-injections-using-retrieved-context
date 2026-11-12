@@ -34,7 +34,9 @@ _HIDDEN = {"zero_width", "html_comment", "hidden_markup", "base64", "homoglyph",
 
 @dataclass
 class ControllerConfig:
-    thresholds: dict[P, float] = field(default_factory=lambda: {p: 0.5 for p in CONTROLLED})
+    # Рабочая точка по кривой компромисса (scripts/experiment_curve.py): 0.40 даёт +5 п.п.
+    # полноты против 0.50 при той же точности и неизменных ложных на «трудном» корпусе.
+    thresholds: dict[P, float] = field(default_factory=lambda: {p: 0.4 for p in CONTROLLED})
     sanitize: bool = True  # False → любой фрагмент с нарушением блокируется целиком
     sanitize_max_ratio: float = 0.5  # если нарушающих предложений больше этой доли — BLOCK
     block_on_hidden: bool = True  # нарушение в скрытом/обфусцированном тексте → BLOCK фрагмента

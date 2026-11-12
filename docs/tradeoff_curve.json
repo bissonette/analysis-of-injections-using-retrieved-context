@@ -1,0 +1,70 @@
+{
+  "n": 2388,
+  "points": [
+    {
+      "threshold": 0.35,
+      "precision": 0.926,
+      "recall": 0.5662,
+      "fpr": 0.0452,
+      "removed_clean": 0.0194,
+      "asr_after": 0.4556
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.9259,
+      "recall": 0.5653,
+      "fpr": 0.0452,
+      "removed_clean": 0.0194,
+      "asr_after": 0.4564
+    },
+    {
+      "threshold": 0.45,
+      "precision": 0.9264,
+      "recall": 0.5168,
+      "fpr": 0.041,
+      "removed_clean": 0.0166,
+      "asr_after": 0.5042
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.9264,
+      "recall": 0.5168,
+      "fpr": 0.041,
+      "removed_clean": 0.0166,
+      "asr_after": 0.5042
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.9264,
+      "recall": 0.5168,
+      "fpr": 0.041,
+      "removed_clean": 0.0165,
+      "asr_after": 0.5042
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.9264,
+      "recall": 0.5168,
+      "fpr": 0.041,
+      "removed_clean": 0.0165,
+      "asr_after": 0.5042
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.9713,
+      "recall": 0.17,
+      "fpr": 0.005,
+      "removed_clean": 0.002,
+      "asr_after": 0.835
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.9474,
+      "recall": 0.0603,
+      "fpr": 0.0034,
+      "removed_clean": 0.0017,
+      "asr_after": 0.943
+    }
+  ],
+  "operating_point": 0.4
+}

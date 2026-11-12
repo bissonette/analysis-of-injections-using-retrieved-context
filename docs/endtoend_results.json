@@ -3,16 +3,16 @@
   "n_attacks": 1137,
   "n_clean": 1194,
   "asr_no_filter": 1.0,
-  "asr_filter": 0.5496921723834652,
+  "asr_filter": 0.4309586631486368,
   "tool_calls_no_filter": 305,
-  "tool_calls_filter": 169,
-  "clean_blocked_rate": 0.04103852596314908,
-  "clean_answer_preserved": 0.974036850921273,
+  "tool_calls_filter": 115,
+  "clean_blocked_rate": 0.04522613065326633,
+  "clean_answer_preserved": 0.9706867671691792,
   "by_permission": {
     "actions": {
       "n": 305,
       "asr_no_filter": 1.0,
-      "asr_filter": 0.554
+      "asr_filter": 0.377
     },
     "disclosure": {
       "n": 37,
@@ -22,18 +22,18 @@
     "format": {
       "n": 175,
       "asr_no_filter": 1.0,
-      "asr_filter": 0.566
+      "asr_filter": 0.543
     },
     "instructions": {
       "n": 150,
       "asr_no_filter": 1.0,
-      "asr_filter": 0.7
+      "asr_filter": 0.42
     },
     "task": {
       "n": 470,
       "asr_no_filter": 1.0,
-      "asr_filter": 0.515
+      "asr_filter": 0.44
     }
   },
-  "asr_reduction": 0.45
+  "asr_reduction": 0.569
 }
