@@ -4,9 +4,14 @@
 Свип общего порога срабатывания по видам влияния: при низком пороге фильтр строже
 (полнота выше, ложных больше), при высоком — мягче. Рабочая точка по умолчанию — 0.40.
 
-Запуск: PYTHONPATH=. python scripts/experiment_curve.py --ext ./ext --out docs/tradeoff_curve.json
+Запуск: python scripts/experiment_curve.py --ext ./ext --out docs/tradeoff_curve.json
 """
 from __future__ import annotations
+
+import sys
+from pathlib import Path as _Path
+
+sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))  # PYTHONPATH не нужен
 
 import argparse
 import json
@@ -41,7 +46,7 @@ def main():
                        "asr_after": round(r.asr_after, 4)})
     if args.out:
         json.dump({"n": len(samples), "points": points, "operating_point": 0.4},
-                  open(args.out, "w"), ensure_ascii=False, indent=2)
+                  open(args.out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print("\nотчёт:", args.out)
 
 

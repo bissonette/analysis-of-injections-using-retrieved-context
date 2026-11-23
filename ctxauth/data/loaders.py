@@ -127,8 +127,8 @@ def load_bipia(repo_dir: str, task: str = "email", split: str = "test",
     atk_file = base / f"{'code' if task == 'code' else 'text'}_attack_{split}.json"
     if not ctx_file.exists() or not atk_file.exists():
         raise FileNotFoundError(f"нет файлов BIPIA: {ctx_file} / {atk_file} (склонируйте microsoft/BIPIA)")
-    contexts = [json.loads(l) for l in ctx_file.open()]
-    attacks = json.load(atk_file.open())
+    contexts = [json.loads(l) for l in ctx_file.open(encoding="utf-8")]
+    attacks = json.load(atk_file.open(encoding="utf-8"))
     perm_map = BIPIA_TEXT_CATEGORY_PERM if task != "code" else None
     out: list[AttackSample] = []
     flat = [(cat, s) for cat, lst in attacks.items() for s in lst]
@@ -165,7 +165,7 @@ def load_injecagent(repo_dir: str, variant: str = "dh", split: str = "base",
     path = Path(repo_dir) / "data" / f"test_cases_{variant}_{split}.json"
     if not path.exists():
         raise FileNotFoundError(f"нет файла InjecAgent: {path}")
-    data = json.load(path.open())
+    data = json.load(path.open(encoding="utf-8"))
     perm = P.ACTIONS
     tech = "exfiltration" if variant == "ds" else "tool_call"
     out: list[AttackSample] = []
@@ -174,10 +174,19 @@ def load_injecagent(repo_dir: str, variant: str = "dh", split: str = "base",
         injected = it.get("Tool Response", "")
         attacker = it.get("Attacker Instruction", "")
         template = it.get("Tool Response Template", "")
+        tools = it.get("Attacker Tools") or []
+        if isinstance(tools, str):  # в части версий датасета список сохранён строкой
+            import ast
+            try:
+                tools = ast.literal_eval(tools)
+            except (ValueError, SyntaxError):
+                tools = [tools]
         out.append(AttackSample(query=q, chunk_text=injected, is_injected=True, permission=perm,
                                 technique=tech, intent=intent, source=f"injecagent/{variant}",
                                 meta={"attack": attacker, "injected_task": attacker,
-                                      "attack_type": it.get("Attack Type")}))
+                                      "attack_type": it.get("Attack Type"),
+                                      # успех атаки = вызов одного из этих инструментов (протокол InjecAgent)
+                                      "attacker_tools": list(tools)}))
         if template:  # чистый аналог: плейсхолдер → безобидный отзыв
             clean = template.replace("<Attacker Instruction>", _INJECAGENT_BENIGN_REVIEW)
             out.append(AttackSample(query=q, chunk_text=clean, is_injected=False, intent=intent,
@@ -208,7 +217,7 @@ def load_chen(repo_dir: str, dataset: str = "squad", limit: int | None = None,
     path = Path(repo_dir) / "data" / f"crafted_instruction_data_{dataset}_injection_qa.json"
     if not path.exists():
         raise FileNotFoundError(f"нет файла Chen et al.: {path}")
-    data = json.load(path.open())
+    data = json.load(path.open(encoding="utf-8"))
     out: list[AttackSample] = []
     for i, it in enumerate(data):
         q = it.get("instruction", "Answer the question based on the context.")
@@ -221,6 +230,8 @@ def load_chen(repo_dir: str, dataset: str = "squad", limit: int | None = None,
         pos = positions[random.Random(9173 + i).randrange(len(positions))]
         out.append(AttackSample(query=q, chunk_text=_insert_at(ctx, inj, pos), is_injected=True,
                                 permission=P.TASK, technique="task_swap", intent=intent,
+                                # успех атаки = ожидаемое слово в ответе (поле injection_output)
+                                canary=(it.get("injection_output") or "").strip() or None,
                                 source=f"chen/{dataset}",
                                 meta={"injected_task": inj, "position": pos}))
         out.append(AttackSample(query=q, chunk_text=ctx, is_injected=False, intent=intent,
@@ -344,5 +355,5 @@ def _read_json(path: str):
     p = Path(path)
     if not p.exists():
         raise FileNotFoundError(f"нет файла: {path}. Скачайте соответствующий бенчмарк (см. docs/BENCHMARKS.md)")
-    data = json.load(p.open())
+    data = json.load(p.open(encoding="utf-8"))
     return data if isinstance(data, list) else list(data.values())

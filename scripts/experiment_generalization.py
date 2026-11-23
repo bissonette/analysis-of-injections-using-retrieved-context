@@ -8,9 +8,14 @@
 обучаемый детектор вне распределения переобучается, а ML-надстройка расширяет границу
 recall/FPR под настраиваемый порог gate.
 
-Запуск:  PYTHONPATH=. python scripts/experiment_generalization.py --ext ./ext --out docs/results_generalization.json
+Запуск:  python scripts/experiment_generalization.py --ext ./ext --out docs/results_generalization.json
 """
 from __future__ import annotations
+
+import sys
+from pathlib import Path as _Path
+
+sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))  # PYTHONPATH не нужен
 
 import argparse
 import json
@@ -85,7 +90,7 @@ def main():
                   f"FPR={o['fpr']:.2f} ASR->{r.asr_after:.2f} removed_clean={r.removed_context_ratio:.3f}")
         report[holdout] = block
     if args.out:
-        json.dump(report, open(args.out, "w"), ensure_ascii=False, indent=2)
+        json.dump(report, open(args.out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print("\nотчёт:", args.out)
 
 

@@ -17,7 +17,11 @@ DEFAULT_TOOLS = [
     ToolSpec("export_db", "export a database table {table, destination}", external=True),
 ]
 
-CALL_RE = re.compile(r"^\s*CALL\s+([A-Za-z_][\w]*)\s*(\{.*\})?\s*$", re.M)
+# Строка вызова инструмента. Реальные модели пишут её по-разному: `CALL send_email {...}`,
+# «CALL: send_email({...})», в обратных кавычках или с маркером списка — принимаем все варианты.
+CALL_RE = re.compile(
+    r"^[\s`*>\-]*CALL\s*:?\s+([A-Za-z_][\w.]*)\s*\(?\s*(\{.*\})?\s*\)?[\s`*]*$", re.M | re.I)
+CALL_LINE = re.compile(r"^[\s`*>\-]*CALL\b", re.I)
 
 
 @dataclass

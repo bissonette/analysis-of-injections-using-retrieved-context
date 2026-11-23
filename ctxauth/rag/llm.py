@@ -19,7 +19,7 @@ from ..attacks.payload import PayloadSpec
 from ..text import split_sentences, words
 from ..types import Chunk, ToolSpec
 from .prompts import SYSTEM_SECRET
-from .tools import ToolCall, parse_tool_calls
+from .tools import CALL_LINE, ToolCall, parse_tool_calls
 
 
 @dataclass
@@ -83,32 +83,103 @@ class SimulatedLLM(BaseLLM):
         return LLMOutput(text=text, tool_calls=calls, raw=raw)
 
 
+class LLMUnavailable(RuntimeError):
+    """Сервер модели недоступен / модель не найдена — с понятным пояснением, что делать."""
+
+
 class OpenAICompatibleLLM(BaseLLM):
-    """Например: base_url=http://localhost:11434/v1, model=qwen2.5:7b-instruct (Ollama)."""
+    """Например: base_url=http://localhost:11434/v1, model=qwen2.5:7b-instruct (Ollama).
+
+    Рассчитан на долгие прогоны на домашнем компьютере:
+      * длинный таймаут (первый запрос к Ollama загружает модель в память — на CPU это минуты);
+      * повторы с нарастающей паузой при таймауте/обрыве/ошибке 5xx;
+      * ограничение длины ответа (max_tokens) — иначе модель на CPU может «писать» минутами;
+      * check_server() и warmup() — проверка и прогрев до начала основного цикла.
+    """
 
     name = "openai-compatible"
 
     def __init__(self, model: str, base_url: str = "http://localhost:11434/v1",
-                 api_key: str | None = None, temperature: float = 0.0, timeout: float = 120):
+                 api_key: str | None = None, temperature: float = 0.0, timeout: float = 600,
+                 max_tokens: int = 400, retries: int = 3, backoff: float = 10.0):
+        if not model:
+            raise ValueError("не указана модель (--model), например qwen2.5:7b-instruct")
         self.model, self.base_url = model, base_url.rstrip("/")
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "none")
         self.temperature, self.timeout = temperature, timeout
+        self.max_tokens, self.retries, self.backoff = max_tokens, retries, backoff
+        self.name = f"{self.model}"
 
-    def chat(self, system: str, user: str) -> str:
-        body = json.dumps({
+    # --- низкоуровневый HTTP ------------------------------------------------------------
+    def _request(self, path: str, body: dict | None, timeout: float) -> dict:
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(f"{self.base_url}{path}", data=data, headers={
+            "Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"},
+            method="POST" if data is not None else "GET")
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+
+    def check_server(self) -> list[str]:
+        """Проверить, что сервер жив и модель скачана. Возвращает список доступных моделей."""
+        import urllib.error
+        try:
+            data = self._request("/models", None, timeout=30)
+        except urllib.error.URLError as e:
+            raise LLMUnavailable(
+                f"Сервер модели не отвечает по адресу {self.base_url} ({e.reason}). "
+                "Запустите Ollama (приложение или команда `ollama serve`) и повторите.") from e
+        except (TimeoutError, OSError) as e:
+            raise LLMUnavailable(f"Сервер модели не отвечает по адресу {self.base_url}: {e}") from e
+        names = [m.get("id", "") for m in data.get("data", [])]
+        base = self.model.split(":")[0]
+        if names and self.model not in names and not any(n.split(":")[0] == base for n in names):
+            raise LLMUnavailable(
+                f"Модель {self.model} не найдена на сервере. Скачайте её: `ollama pull {self.model}`. "
+                f"Доступны: {', '.join(names) or '—'}")
+        return names
+
+    def warmup(self) -> float:
+        """Первый запрос: загрузка модели в память. Возвращает время в секундах."""
+        import time
+        t0 = time.perf_counter()
+        self.chat("You are a helpful assistant.", "Reply with the single word OK.",
+                  max_tokens=5, timeout=max(self.timeout, 900))
+        return time.perf_counter() - t0
+
+    def chat(self, system: str, user: str, *, max_tokens: int | None = None,
+             timeout: float | None = None) -> str:
+        import time
+        import urllib.error
+        body = {
             "model": self.model, "temperature": self.temperature,
+            "max_tokens": max_tokens or self.max_tokens,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-        }).encode()
-        req = urllib.request.Request(f"{self.base_url}/chat/completions", data=body, headers={
-            "Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"})
-        with urllib.request.urlopen(req, timeout=self.timeout) as r:
-            data = json.loads(r.read())
-        return data["choices"][0]["message"]["content"] or ""
+        }
+        last: Exception | None = None
+        for attempt in range(self.retries + 1):
+            try:
+                data = self._request("/chat/completions", body, timeout or self.timeout)
+                return data["choices"][0]["message"]["content"] or ""
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    raise LLMUnavailable(
+                        f"Модель {self.model} не найдена: `ollama pull {self.model}`") from e
+                if e.code < 500:
+                    raise
+                last = e
+            except (TimeoutError, urllib.error.URLError, ConnectionError, OSError) as e:
+                last = e
+            if attempt < self.retries:
+                time.sleep(self.backoff * (3 ** attempt))  # 10 с, 30 с, 90 с …
+        raise LLMUnavailable(
+            f"Модель не ответила после {self.retries + 1} попыток (последняя ошибка: {last!r}). "
+            "Если компьютер медленный — увеличьте --timeout или возьмите модель поменьше "
+            "(qwen2.5:3b-instruct).") from last
 
     def generate(self, system, user, *, query, chunks, tools):
         raw = self.chat(system, user)
         calls = parse_tool_calls(raw)
-        text = "\n".join(l for l in raw.splitlines() if not l.strip().startswith("CALL "))
+        text = "\n".join(l for l in raw.splitlines() if not CALL_LINE.match(l))
         return LLMOutput(text=text, tool_calls=calls, raw=raw)
 
 

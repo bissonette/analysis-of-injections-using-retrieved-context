@@ -9,9 +9,14 @@
 Позиция вставки: Chen et al. вставляет ту же инъекцию в начало/середину/конец контекста —
 считаем полноту по позициям.
 
-Запуск: PYTHONPATH=. python scripts/experiment_robustness.py --ext ./ext --out docs/robustness.json
+Запуск: python scripts/experiment_robustness.py --ext ./ext --out docs/robustness.json
 """
 from __future__ import annotations
+
+import sys
+from pathlib import Path as _Path
+
+sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))  # PYTHONPATH не нужен
 
 import argparse
 import collections
@@ -92,7 +97,7 @@ def main():
     if args.out:
         json.dump({"phrasing_goals": goals,
                    "phrasing_summary": {"stable": stable, "partial": partial, "weak": weak},
-                   "position": positions}, open(args.out, "w"), ensure_ascii=False, indent=2)
+                   "position": positions}, open(args.out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print("\nотчёт:", args.out)
 
 

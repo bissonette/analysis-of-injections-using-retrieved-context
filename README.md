@@ -125,6 +125,6 @@ python -m ctxauth fpr                                   # ложные сраб�
 python -m ctxauth eval --ext ./ext --limit 200 --out docs/results.json
 python -m ctxauth eval --ext ./ext --holdout piarena    # кросс-бенчмарковая проверка обобщения
 python -m ctxauth train-clf --ext ./ext --out model.pkl # обучить бинарный детектор-baseline
-PYTHONPATH=. python scripts/experiment_generalization.py --ext ./ext --out docs/results_generalization.json
+python scripts/experiment_generalization.py --ext ./ext --out docs/results_generalization.json
 python -m pytest -q                                     # тесты
 ```

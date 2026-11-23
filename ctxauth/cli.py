@@ -82,7 +82,7 @@ def cmd_eval(args):
         print(rep.summary())
         reports[rep.defense] = rep.to_dict()
     if args.out:
-        json.dump(reports, open(args.out, "w"), ensure_ascii=False, indent=2)
+        json.dump(reports, open(args.out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print("отчёт:", args.out)
 
 

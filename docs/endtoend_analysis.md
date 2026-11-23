@@ -51,8 +51,11 @@
 
 ```bash
 ollama pull qwen2.5:7b-instruct
-PYTHONPATH=. python scripts/experiment_endtoend.py --ext ./ext \
+python scripts/experiment_endtoend.py --ext ./ext \
     --backend ollama --model qwen2.5:7b-instruct --out docs/endtoend_real.json
 ```
-Тогда ASR отразит реальное поведение модели, а не верхнюю оценку. Критерий утечки — секретная
-метка в системном промпте; критерий атаки на действия — факт вызова внешнего инструмента.
+Тогда ASR отразит реальное поведение модели, а не верхнюю оценку. Успех атаки на живой модели
+засчитывается по протоколам самих бенчмарков (слово-свидетель SEP, ожидаемое слово Chen et al.,
+вызов инструмента нарушителя InjecAgent, утечка системного промпта Raccoon, ссылка/бренд из
+вставки PIArena). Пошаговая инструкция для Windows, продолжение прерванного прогона и что
+прислать для разбора — `docs/LIVE_RUN.md`.

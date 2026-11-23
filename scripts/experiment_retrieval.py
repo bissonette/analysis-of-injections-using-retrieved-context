@@ -2,9 +2,14 @@
 """Эксперимент Б: индексация отравленных документов в общий корпус, реальный поиск,
 Hit@k и успех атак с фильтром и без.
 
-Запуск: PYTHONPATH=. python scripts/experiment_retrieval.py --ext ./ext --out docs/retrieval_results.json
+Запуск: python scripts/experiment_retrieval.py --ext ./ext --out docs/retrieval_results.json
 """
 from __future__ import annotations
+
+import sys
+from pathlib import Path as _Path
+
+sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))  # PYTHONPATH не нужен
 
 import argparse
 import json
@@ -33,7 +38,7 @@ def main():
     for src, m in rep.by_source.items():
         print(f"  {src:22} hit={m['hit_at_k']:.2f}  {m['asr_no_filter']:.2f} -> {m['asr_filter']:.2f}  (n={m['n']})")
     if args.out:
-        json.dump(rep.to_dict(), open(args.out, "w"), ensure_ascii=False, indent=2)
+        json.dump(rep.to_dict(), open(args.out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print("\nотчёт:", args.out)
 
 

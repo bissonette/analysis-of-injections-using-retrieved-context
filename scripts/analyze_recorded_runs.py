@@ -18,6 +18,11 @@
 """
 from __future__ import annotations
 
+import sys
+from pathlib import Path as _Path
+
+sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))  # PYTHONPATH не нужен
+
 import argparse
 import collections
 import glob
@@ -46,7 +51,7 @@ def analyze_agentdojo(ext: str) -> dict:
             if attack == "none":
                 continue
             try:
-                d = json.load(open(p))
+                d = json.load(open(p, encoding="utf-8"))
             except (json.JSONDecodeError, OSError):
                 continue
             if d.get("injection_task_id") in (None, "None"):
@@ -75,7 +80,7 @@ def analyze_agentdojo(ext: str) -> dict:
             if attack == "none":
                 continue
             try:
-                d = json.load(open(p))
+                d = json.load(open(p, encoding="utf-8"))
             except (json.JSONDecodeError, OSError):
                 continue
             if d.get("injection_task_id") in (None, "None"):
@@ -111,7 +116,7 @@ def analyze_tasktracker(ext: str) -> dict:
             continue
         model = os.path.basename(d).replace("_responses", "").replace("_response", "")
         labels = collections.Counter()
-        data = json.load(open(vf[0]))
+        data = json.load(open(vf[0], encoding="utf-8"))
         for v in data.values():
             labels[str(v.get("short", "")).upper().strip()] += 1
         total = sum(labels.values())
@@ -153,7 +158,7 @@ def main():
         print(f"  {m:28} EXECUTED(ASR)={v['asr_executed']:.2f}  REJECTED={v['rejected']:.2f}  NOT_DETECTED={v['not_detected']:.2f}  n={v['n']}")
 
     if args.out:
-        json.dump({"agentdojo": ad, "tasktracker": tt}, open(args.out, "w"), ensure_ascii=False, indent=2)
+        json.dump({"agentdojo": ad, "tasktracker": tt}, open(args.out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print("\nотчёт:", args.out)
 
 
