@@ -119,18 +119,29 @@ class OpenAICompatibleLLM(BaseLLM):
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode("utf-8"))
 
+    def _list_models(self) -> list[str]:
+        data = self._request("/models", None, timeout=30)
+        return [m.get("id", "") for m in data.get("data", [])]
+
+    def _complete(self, system: str, user: str, max_tokens: int, timeout: float) -> str:
+        body = {
+            "model": self.model, "temperature": self.temperature, "max_tokens": max_tokens,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        }
+        data = self._request("/chat/completions", body, timeout)
+        return data["choices"][0]["message"]["content"] or ""
+
     def check_server(self) -> list[str]:
         """Проверить, что сервер жив и модель скачана. Возвращает список доступных моделей."""
         import urllib.error
         try:
-            data = self._request("/models", None, timeout=30)
+            names = self._list_models()
         except urllib.error.URLError as e:
             raise LLMUnavailable(
                 f"Сервер модели не отвечает по адресу {self.base_url} ({e.reason}). "
                 "Запустите Ollama (приложение или команда `ollama serve`) и повторите.") from e
         except (TimeoutError, OSError) as e:
             raise LLMUnavailable(f"Сервер модели не отвечает по адресу {self.base_url}: {e}") from e
-        names = [m.get("id", "") for m in data.get("data", [])]
         base = self.model.split(":")[0]
         if names and self.model not in names and not any(n.split(":")[0] == base for n in names):
             raise LLMUnavailable(
@@ -150,16 +161,10 @@ class OpenAICompatibleLLM(BaseLLM):
              timeout: float | None = None) -> str:
         import time
         import urllib.error
-        body = {
-            "model": self.model, "temperature": self.temperature,
-            "max_tokens": max_tokens or self.max_tokens,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-        }
         last: Exception | None = None
         for attempt in range(self.retries + 1):
             try:
-                data = self._request("/chat/completions", body, timeout or self.timeout)
-                return data["choices"][0]["message"]["content"] or ""
+                return self._complete(system, user, max_tokens or self.max_tokens, timeout or self.timeout)
             except urllib.error.HTTPError as e:
                 if e.code == 404:
                     raise LLMUnavailable(
@@ -183,11 +188,43 @@ class OpenAICompatibleLLM(BaseLLM):
         return LLMOutput(text=text, tool_calls=calls, raw=raw)
 
 
+class OllamaLLM(OpenAICompatibleLLM):
+    """Родной API Ollama (/api/chat). В отличие от OpenAI-совместимого, позволяет задать окно
+    контекста num_ctx в каждом запросе: по умолчанию Ollama держит короткое окно и молча
+    обрезает длинный запрос — вместе с инъекцией. С num_ctx=8192 длинные фрагменты RAG-наборов
+    помещаются целиком. Адрес можно указывать как http://localhost:11434 или .../v1."""
+
+    name = "ollama"
+
+    def __init__(self, model: str, base_url: str = "http://localhost:11434", num_ctx: int = 8192,
+                 **kw):
+        base = base_url.rstrip("/")
+        base = base[:-3] if base.endswith("/v1") else base
+        super().__init__(model, base_url=base, **kw)
+        self.num_ctx = num_ctx
+
+    def _list_models(self) -> list[str]:
+        data = self._request("/api/tags", None, timeout=30)
+        return [m.get("name") or m.get("model", "") for m in data.get("models", [])]
+
+    def _complete(self, system: str, user: str, max_tokens: int, timeout: float) -> str:
+        body = {
+            "model": self.model, "stream": False,
+            "options": {"temperature": self.temperature, "num_predict": max_tokens, "num_ctx": self.num_ctx},
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        }
+        data = self._request("/api/chat", body, timeout)
+        return (data.get("message") or {}).get("content") or ""
+
+
 def make_llm(cfg: dict | None, registry: dict[str, PayloadSpec] | None = None) -> BaseLLM:
     cfg = dict(cfg or {"backend": "sim"})
     backend = cfg.pop("backend", "sim")
     if backend == "sim":
         return SimulatedLLM(registry=registry, **cfg)
-    if backend in ("openai", "ollama", "openai-compatible"):
+    if backend == "ollama":
+        return OllamaLLM(**cfg)
+    if backend in ("openai", "openai-compatible"):
+        cfg.pop("num_ctx", None)
         return OpenAICompatibleLLM(**cfg)
     raise ValueError(f"неизвестный LLM-бэкенд: {backend}")

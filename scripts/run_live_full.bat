@@ -1,5 +1,5 @@
 @echo off
-rem FULL live run: all scorable samples (~770 attacks + ~930 clean). Takes hours.
+rem FULL live run: all scorable samples (~990 attacks + ~1190 clean). Takes hours.
 rem Safe to stop (Ctrl+C or close window): run again to resume where it stopped.
 rem Usage: double-click, or from the project folder: scripts\run_live_full.bat [model]
 cd /d "%~dp0.."

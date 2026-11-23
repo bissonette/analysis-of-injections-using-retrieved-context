@@ -36,7 +36,10 @@ def main():
     ap.add_argument("--mode", default="rules", choices=["rules", "gated", "max", "ml"])
     ap.add_argument("--backend", default="sim", help="sim | ollama | openai-compatible")
     ap.add_argument("--model", default=None)
-    ap.add_argument("--base-url", default="http://localhost:11434/v1")
+    ap.add_argument("--base-url", default="http://localhost:11434")
+    ap.add_argument("--num-ctx", type=int, default=8192,
+                    help="окно контекста Ollama в токенах (по умолчанию Ollama держит короткое и "
+                         "обрезает длинные фрагменты вместе с инъекцией)")
     ap.add_argument("--timeout", type=float, default=600, help="сек на один ответ модели")
     ap.add_argument("--max-tokens", type=int, default=400, help="макс. длина ответа модели")
     ap.add_argument("--retries", type=int, default=3)
@@ -45,31 +48,35 @@ def main():
     ap.add_argument("--max-clean", type=int, default=None,
                     help="сколько чистых примеров; для живой модели по умолчанию 50")
     ap.add_argument("--max-chars", type=int, default=None,
-                    help="пропускать слишком длинные фрагменты; для живой модели по умолчанию 4000 "
-                         "(иначе Ollama может обрезать контекст вместе с инъекцией)")
+                    help="пропускать слишком длинные фрагменты (символов); для Ollama по умолчанию 12000 "
+                         "(помещается в --num-ctx 8192), для прочих серверов 4000")
     ap.add_argument("--judge", action="store_true",
                     help="использовать модель как судью для атак без явного маркера успеха (часть BIPIA)")
     ap.add_argument("--checkpoint", default=None,
                     help="JSONL с результатами по каждому примеру (по умолчанию рядом с --out)")
     ap.add_argument("--fresh", action="store_true", help="не продолжать старый прогон, начать заново")
-    ap.add_argument("--preset", choices=["test", "full"], default=None,
-                    help="test — пробный (20 атак, 5 чистых, 5–20 мин); "
-                         "full — полный объём (все подходящие примеры: ~770 атак, ~930 чистых)")
+    ap.add_argument("--preset", choices=["test", "full", "max"], default=None,
+                    help="test — пробный (20 атак + 5 чистых); full — все атаки с автоматическим "
+                         "критерием успеха + все чистые (~1060 + ~1190); max — вообще все примеры "
+                         "(~1190 + ~1190), атаки без критерия оценивает модель-судья")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
     live = args.backend != "sim"
     # объём: явные --max-* важнее пресета; без пресета для живой модели — средний объём 150/50
-    presets = {"test": (20, 5), "full": (None, None)}
+    presets = {"test": (20, 5), "full": (None, None), "max": (None, None)}
     if args.preset:
         pa, pc = presets[args.preset]
         args.max_attacks = args.max_attacks if args.max_attacks is not None else pa
         args.max_clean = args.max_clean if args.max_clean is not None else pc
+        if args.preset == "max":
+            args.judge = True
     elif live:
         args.max_attacks = args.max_attacks if args.max_attacks is not None else 150
         args.max_clean = args.max_clean if args.max_clean is not None else 50
     if live:
-        args.max_chars = args.max_chars if args.max_chars is not None else 4000
+        args.max_chars = args.max_chars if args.max_chars is not None else (
+            12000 if args.backend == "ollama" else 4000)
 
     samples = _build_samples(args.ext, args.limit)
     if not samples:
@@ -84,8 +91,13 @@ def main():
 
     llm = None
     if live:
-        llm = make_llm({"backend": args.backend, "model": args.model, "base_url": args.base_url,
-                        "timeout": args.timeout, "max_tokens": args.max_tokens, "retries": args.retries})
+        cfg = {"backend": args.backend, "model": args.model, "base_url": args.base_url,
+               "timeout": args.timeout, "max_tokens": args.max_tokens, "retries": args.retries}
+        if args.backend == "ollama":
+            cfg["num_ctx"] = args.num_ctx
+        elif args.base_url == "http://localhost:11434":
+            cfg["base_url"] = "http://localhost:11434/v1"
+        llm = make_llm(cfg)
         try:
             print(f"Проверяю сервер {args.base_url} и модель {args.model} …", flush=True)
             llm.check_server()
@@ -122,7 +134,7 @@ def main():
     if args.out:
         out = r.to_dict()
         out["config"] = {k: getattr(args, k) for k in ("backend", "model", "preset", "limit", "max_attacks",
-                         "max_clean", "max_chars", "max_tokens", "judge")}
+                         "max_clean", "max_chars", "max_tokens", "num_ctx", "judge")}
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         with open(args.out, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, indent=2)

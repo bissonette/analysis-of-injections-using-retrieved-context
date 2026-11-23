@@ -318,6 +318,15 @@ def run_endtoend(samples: list[AttackSample], defense, llm: BaseLLM | None = Non
             reg.call(c)
         return out
 
+    class _CountingJudge:
+        """Модель в роли судьи — её запросы тоже учитываются в llm_calls."""
+        def chat(self, *a, **kw):
+            nonlocal calls
+            calls += 1
+            return llm.chat(*a, **kw)
+
+    judge_llm = _CountingJudge() if (judge and not is_sim) else None
+
     records: list[dict] = []
     try:
         for i, (kind, s) in enumerate(todo):
@@ -357,8 +366,8 @@ def run_endtoend(samples: list[AttackSample], defense, llm: BaseLLM | None = Non
                         s0 = _sim_succeeded(pl.goal, pl.canary, o0)
                         s1 = _sim_succeeded(pl.goal, pl.canary, o1)
                     else:
-                        s0 = real_succeeded(crit, o0, llm if judge else None)
-                        s1 = s0 if o1 is o0 else real_succeeded(crit, o1, llm if judge else None)
+                        s0 = real_succeeded(crit, o0, judge_llm)
+                        s1 = s0 if o1 is o0 else real_succeeded(crit, o1, judge_llm)
                     rec.update({"success_no_filter": bool(s0), "success_filter": bool(s1),
                                 "markers": crit.keywords or crit.tools})
                 else:

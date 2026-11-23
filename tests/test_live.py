@@ -11,7 +11,7 @@ from ctxauth.authority import AuthorityAnalyzer, ContextAuthorityController
 from ctxauth.eval.endtoend import (Criterion, extract_markers, keyword_hit, real_criterion,
                                    real_succeeded, run_endtoend)
 from ctxauth.eval.sample import AttackSample
-from ctxauth.rag.llm import BaseLLM, LLMOutput, LLMUnavailable, OpenAICompatibleLLM
+from ctxauth.rag.llm import BaseLLM, LLMOutput, LLMUnavailable, OllamaLLM, OpenAICompatibleLLM
 from ctxauth.rag.tools import ToolCall
 from ctxauth.types import Permission as P
 
@@ -142,16 +142,26 @@ class _FakeOllama(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    last_body: dict = {}
+
     def do_GET(self):
-        self._send({"data": [{"id": "fake:1b"}]})
+        if self.path.startswith("/api/tags"):          # родной API Ollama
+            self._send({"models": [{"name": "fake:1b"}]})
+        else:                                          # OpenAI-совместимый
+            self._send({"data": [{"id": "fake:1b"}]})
 
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         type(self).hits += 1
+        type(self).last_body = body
         if type(self).slow_first and type(self).hits == 1:
             time.sleep(1.5)                 # первый запрос «грузит модель» дольше таймаута
-        assert body["max_tokens"] > 0
-        self._send({"choices": [{"message": {"content": "OK"}}]})
+        if self.path.startswith("/api/chat"):
+            assert body["options"]["num_predict"] > 0
+            self._send({"message": {"role": "assistant", "content": "OK"}})
+        else:
+            assert body["max_tokens"] > 0
+            self._send({"choices": [{"message": {"content": "OK"}}]})
 
 
 @pytest.fixture()
@@ -180,3 +190,17 @@ def test_client_reports_server_down():
     llm = OpenAICompatibleLLM("x", base_url="http://127.0.0.1:9/v1", retries=0, backoff=0.01)
     with pytest.raises(LLMUnavailable, match="Ollama"):
         llm.check_server()
+
+
+def test_ollama_native_sends_num_ctx_and_retries(fake_server):
+    # адрес можно дать и с /v1 — родной клиент сам уберёт суффикс
+    llm = OllamaLLM("fake:1b", base_url=fake_server, num_ctx=8192, timeout=0.5, retries=2, backoff=0.01)
+    assert llm.check_server() == ["fake:1b"]
+    assert llm.chat("s", "u") == "OK"
+    assert _FakeOllama.last_body["options"]["num_ctx"] == 8192
+    assert _FakeOllama.hits >= 2
+
+
+def test_ollama_native_missing_model(fake_server):
+    with pytest.raises(LLMUnavailable, match="ollama pull"):
+        OllamaLLM("qwen2.5:7b-instruct", base_url=fake_server).check_server()
