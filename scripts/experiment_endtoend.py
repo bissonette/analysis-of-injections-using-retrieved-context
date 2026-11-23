@@ -52,13 +52,23 @@ def main():
     ap.add_argument("--checkpoint", default=None,
                     help="JSONL с результатами по каждому примеру (по умолчанию рядом с --out)")
     ap.add_argument("--fresh", action="store_true", help="не продолжать старый прогон, начать заново")
+    ap.add_argument("--preset", choices=["test", "full"], default=None,
+                    help="test — пробный (20 атак, 5 чистых, 5–20 мин); "
+                         "full — полный объём (все подходящие примеры: ~770 атак, ~930 чистых)")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
     live = args.backend != "sim"
-    if live:
+    # объём: явные --max-* важнее пресета; без пресета для живой модели — средний объём 150/50
+    presets = {"test": (20, 5), "full": (None, None)}
+    if args.preset:
+        pa, pc = presets[args.preset]
+        args.max_attacks = args.max_attacks if args.max_attacks is not None else pa
+        args.max_clean = args.max_clean if args.max_clean is not None else pc
+    elif live:
         args.max_attacks = args.max_attacks if args.max_attacks is not None else 150
         args.max_clean = args.max_clean if args.max_clean is not None else 50
+    if live:
         args.max_chars = args.max_chars if args.max_chars is not None else 4000
 
     samples = _build_samples(args.ext, args.limit)
@@ -111,7 +121,7 @@ def main():
         print(f"  {src:22} {m['asr_no_filter']:.2f} -> {m['asr_filter']:.2f}   (n={m['n']})")
     if args.out:
         out = r.to_dict()
-        out["config"] = {k: getattr(args, k) for k in ("backend", "model", "limit", "max_attacks",
+        out["config"] = {k: getattr(args, k) for k in ("backend", "model", "preset", "limit", "max_attacks",
                          "max_clean", "max_chars", "max_tokens", "judge")}
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         with open(args.out, "w", encoding="utf-8") as f:
