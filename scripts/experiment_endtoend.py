@@ -24,6 +24,17 @@ except AttributeError:
     pass
 
 
+def _progress_printer(every: int):
+    """Печатает каждую every-ю строку прогресса, первые 3 и все ошибки."""
+    n = {"i": 0}
+
+    def show(msg: str) -> None:
+        n["i"] += 1
+        if every <= 1 or n["i"] <= 3 or n["i"] % every == 0 or "ОШИБКА" in msg:
+            print(msg, flush=True)
+    return show
+
+
 def main():
     from ctxauth.authority import AuthorityAnalyzer, ContextAuthorityController
     from ctxauth.cli import _build_samples
@@ -55,6 +66,9 @@ def main():
     ap.add_argument("--checkpoint", default=None,
                     help="JSONL с результатами по каждому примеру (по умолчанию рядом с --out)")
     ap.add_argument("--fresh", action="store_true", help="не продолжать старый прогон, начать заново")
+    ap.add_argument("--progress-every", type=int, default=1,
+                    help="печатать прогресс раз в N примеров (ошибки печатаются всегда); "
+                         "в Colab удобно 10, чтобы не подвешивать вкладку тысячами строк")
     ap.add_argument("--preset", choices=["test", "full", "max"], default=None,
                     help="test — пробный (20 атак + 5 чистых); full — все атаки с автоматическим "
                          "критерием успеха + все чистые (~1060 + ~1190); max — вообще все примеры "
@@ -119,7 +133,7 @@ def main():
         r = run_endtoend(samples, defense, llm=llm, max_attacks=args.max_attacks,
                          max_clean=args.max_clean, max_chars=args.max_chars, judge=args.judge,
                          checkpoint=checkpoint,
-                         progress=(lambda m: print(m, flush=True)) if live else None)
+                         progress=_progress_printer(args.progress_every) if live else None)
     except RuntimeError as e:
         raise SystemExit(f"\nОСТАНОВЛЕНО: {e}")
 

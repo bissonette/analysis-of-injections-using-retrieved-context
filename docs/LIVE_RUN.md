@@ -3,6 +3,10 @@
 Цель: измерить успешность атак на **настоящей** модели, с фильтром и без. Компьютер с ~8 ГБ
 свободной памяти; видеокарта NVIDIA сильно ускоряет, но не обязательна.
 
+> **Слабая видеокарта или её нет?** Проще и быстрее запустить то же самое в Google Colab на
+> бесплатной T4 (16 ГБ): [docs/COLAB.md](COLAB.md),
+> [открыть блокнот](https://colab.research.google.com/github/bissonette/analysis-of-injections-using-retrieved-context/blob/main/notebooks/colab_live_run.ipynb).
+
 ## Шаг 1. Ollama и модель (один раз)
 
 1. Установить Ollama: https://ollama.com/download и запустить приложение (значок в трее).

@@ -102,7 +102,7 @@ Hit@5 = 0.23 — большинство атак вообще не попада�
 Ложные срабатывания на встроенном «трудном» корпусе (мануалы, статьи о безопасности, регламенты):
 FPR 0.051.
 
-Документация: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/attack_analysis.md](docs/attack_analysis.md) — анализ успешности атак, [docs/existing_solutions.md](docs/existing_solutions.md) — обзор решений, [docs/EXPLAINER.md](docs/EXPLAINER.md) — пояснения простым языком, [docs/endtoend_analysis.md](docs/endtoend_analysis.md) — сквозной прогон, [docs/REPORT_FOR_ADVISOR.md](docs/REPORT_FOR_ADVISOR.md) — отчёт, [docs/benchmark_quotes.md](docs/benchmark_quotes.md) — цитаты из статей, [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md) — про JSON-снимки, [docs/LIVE_RUN.md](docs/LIVE_RUN.md) — прогон на живой модели.
+Документация: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BENCHMARKS.md](docs/BENCHMARKS.md), [docs/attack_analysis.md](docs/attack_analysis.md) — анализ успешности атак, [docs/existing_solutions.md](docs/existing_solutions.md) — обзор решений, [docs/EXPLAINER.md](docs/EXPLAINER.md) — пояснения простым языком, [docs/endtoend_analysis.md](docs/endtoend_analysis.md) — сквозной прогон, [docs/REPORT_FOR_ADVISOR.md](docs/REPORT_FOR_ADVISOR.md) — отчёт, [docs/benchmark_quotes.md](docs/benchmark_quotes.md) — цитаты из статей, [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md) — про JSON-снимки, [docs/LIVE_RUN.md](docs/LIVE_RUN.md) — прогон на живой модели, [docs/COLAB.md](docs/COLAB.md) — то же в Google Colab на бесплатной видеокарте ([открыть блокнот](https://colab.research.google.com/github/bissonette/analysis-of-injections-using-retrieved-context/blob/main/notebooks/colab_live_run.ipynb)).
 
 ## Статус
 
