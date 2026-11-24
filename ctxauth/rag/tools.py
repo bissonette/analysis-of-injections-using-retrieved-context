@@ -6,7 +6,8 @@ import json
 import re
 from dataclasses import dataclass, field
 
-from ..types import ToolSpec
+from ..tools_meta import EXTERNAL_TOOLS
+from ..types import RequestPolicy, ToolSpec
 
 DEFAULT_TOOLS = [
     ToolSpec("create_ticket", "create an internal helpdesk ticket {title, body}"),
@@ -32,12 +33,18 @@ class ToolCall:
 
 class ToolRegistrar:
     def __init__(self, tools: list[ToolSpec] | None = None):
-        self.tools = {t.name: t for t in (tools or DEFAULT_TOOLS)}
+        self.tools = {t.name: t for t in (DEFAULT_TOOLS if tools is None else tools)}
         self.log: list[ToolCall] = []
 
     @property
     def specs(self) -> list[ToolSpec]:
         return list(self.tools.values())
+
+    def specs_for(self, policy: RequestPolicy | None) -> list[ToolSpec]:
+        if policy is None:
+            return self.specs
+        return [tool for tool in self.specs
+                if policy.allows_tool(tool.name, external=tool.external or tool.name in EXTERNAL_TOOLS)]
 
     def call(self, call: ToolCall) -> str:
         self.log.append(call)

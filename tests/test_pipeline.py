@@ -1,7 +1,9 @@
 from ctxauth.authority import AuthorityAnalyzer, ContextAuthorityController
 from ctxauth.data.builtin_corpus import builtin_documents
+from ctxauth.rag.llm import LLMOutput
 from ctxauth.rag.orchestrator import Orchestrator
-from ctxauth.rag.tools import ToolCall, parse_tool_calls
+from ctxauth.rag.tools import ToolCall, ToolRegistrar, parse_tool_calls
+from ctxauth.types import ToolSpec
 
 
 def test_end_to_end_runs():
@@ -15,6 +17,35 @@ def test_no_filter_mode():
     orch = Orchestrator.from_documents(builtin_documents(), defense=None)
     res = orch.answer("What is photosynthesis?")
     assert res.filter_result is None and res.kept_chunks
+
+
+def test_tool_scope_is_enforced_even_if_model_emits_an_unlisted_call():
+    class RecordingLLM:
+        def generate(self, system, user, *, query, chunks, tools):
+            self.specs = [tool.name for tool in tools]
+            return LLMOutput(text="Finished.", raw="Finished.",
+                             tool_calls=[ToolCall("search_kb"), ToolCall("create_ticket"), ToolCall("unlisted")])
+
+    llm = RecordingLLM()
+    tools = ToolRegistrar([ToolSpec("search_kb", "Search the knowledge base"),
+                           ToolSpec("create_ticket", "External ticket integration", external=True)])
+    orch = Orchestrator.from_documents(builtin_documents(), llm=llm, tools=tools,
+                                       defense=ContextAuthorityController(AuthorityAnalyzer(mode="rules")))
+
+    summary = orch.answer("Summarize how to follow the steps in the runbook")
+    assert llm.specs == []
+    assert summary.tool_calls == tools.log == []
+    assert len(summary.blocked_tool_calls) == 3
+
+    delegated = orch.answer("Follow the steps in the runbook")
+    assert llm.specs == ["search_kb"]
+    assert delegated.tool_calls == tools.log == [ToolCall("search_kb")]
+    assert delegated.blocked_tool_calls == [ToolCall("create_ticket"), ToolCall("unlisted")]
+
+    orch.defense = None
+    unfiltered = orch.answer("Summarize the runbook")
+    assert llm.specs == ["search_kb", "create_ticket"]
+    assert len(unfiltered.tool_calls) == 3 and not unfiltered.blocked_tool_calls
 
 
 def test_parse_tool_calls():

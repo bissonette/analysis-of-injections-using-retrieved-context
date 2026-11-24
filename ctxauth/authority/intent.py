@@ -29,9 +29,9 @@ INTENTS: tuple[IntentSpec, ...] = (
         frozenset({P.TASK, P.ACTIONS}),
         frozenset({"create_ticket", "search_kb"}),
         (
-            r"\b(follow|execute|carry out|perform|run|apply|complete)\b.{0,40}\b(steps|instructions|procedure|runbook|checklist|playbook|ticket)\b",
-            r"\bdo what\b.{0,30}\b(document|ticket|runbook|page)\b.{0,10}\b(says|asks|requires)\b",
-            r"\b(выполни|выполните|проделай|исполни)\w*\b.{0,40}\b(шаг|инструкц|процедур|регламент|заявк|чек-?лист)",
+            r"^\s*(?:please\s+)?(follow|execute|carry out|perform|run|apply|complete)\b.{0,40}\b(steps|instructions|procedure|runbook|checklist|playbook|ticket)\b",
+            r"^\s*(?:please\s+)?do what\b.{0,30}\b(document|ticket|runbook|page)\b.{0,10}\b(says|asks|requires)\b",
+            r"^\s*(?:пожалуйста[\s,]+)?(выполни|выполните|проделай|исполни)\w*\b.{0,40}\b(шаг|инструкц|процедур|регламент|заявк|чек-?лист)",
         ),
         "Пользователь явно поручает выполнить процедуру из документа (агентный сценарий).",
     ),
