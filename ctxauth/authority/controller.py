@@ -30,6 +30,25 @@ DEFERRED_REF = re.compile(
     re.I,
 )
 _HIDDEN = {"zero_width", "html_comment", "hidden_markup", "base64", "homoglyph", "leet"}
+_NUMBERED_HEADING = re.compile(r"[ \t]*\d{1,3}[.)][ \t]+")
+_PROSE_QUOTE = re.compile(r'«[^»]*»|“[^”]*”|"[^"]*"|\x27\x27.*?\x27\x27')
+_EXPAND_LABEL = "show more "
+
+
+def _embedded_question(text: str, start: int, end: int) -> bool:
+    """Есть ли у вопроса роль заголовка списка или части цитируемой речи."""
+    line_start = text.rfind("\n", 0, start) + 1
+    if _NUMBERED_HEADING.fullmatch(text[line_start:start]):
+        return True
+    marker = text.rfind("[PAR]", line_start, start)
+    paragraph_start = marker + len("[PAR]") if marker >= 0 else line_start
+    paragraph_end = min(
+        (i for i in (text.find("\n", end), text.find("[PAR]", end), len(text)) if i >= 0)
+    )
+    return any(
+        paragraph_start + match.start() + 2 < start and end < paragraph_start + match.end() - 2
+        for match in _PROSE_QUOTE.finditer(text[paragraph_start:paragraph_end])
+    )
 
 
 @dataclass
@@ -95,7 +114,7 @@ class ContextAuthorityController:
             evs.append(flat_ev[i:i + len(ss)])
             i += len(ss)
         if self.config.offtopic_task:
-            self._offtopic_task(query, chunks, sents, evs)
+            self._offtopic_task(query, chunks, spans, sents, evs)
         viol: list[list[list[Violation]]] = [[self.violations_of(e, policy) for e in ce] for ce in evs]
         if self.config.cross_chunk:
             self._cross_chunk(chunks, sents, evs, viol, policy)
@@ -139,7 +158,7 @@ class ContextAuthorityController:
                                      violations=[(v.permission.code, round(v.score, 3), v.reason) for v in d.violations])
         return res
 
-    def _offtopic_task(self, query, chunks, sents, evs) -> None:
+    def _offtopic_task(self, query, chunks, spans, sents, evs) -> None:
         """Ищет подмену задачи в прозе и команды внутри структурированных полей.
 
         Процедурные документы (регламенты, рецепты, инструкции) не затрагиваются: в них почти
@@ -156,19 +175,27 @@ class ContextAuthorityController:
             # одной командой в фактическом тексте процедурным НЕ считается).
             if instr_count >= 3 and instr_count / len(ss) > self.config.proc_doc_ratio:
                 continue
-            questions = [k for k, s in enumerate(ss) if QUESTION_PROBE.fullmatch(s)]
+            # В выгрузках веб-страниц подпись кнопки может слиться с текстом вопроса.
+            # Прочие императивы с «show more» оцениваются в исходном виде.
+            prose_sents = []
+            for sentence in ss:
+                remainder = sentence[len(_EXPAND_LABEL):]
+                if sentence.lower().startswith(_EXPAND_LABEL) and QUESTION_PROBE.fullmatch(remainder):
+                    sentence = remainder.lstrip()
+                prose_sents.append(sentence)
+            questions = [k for k, s in enumerate(prose_sents) if QUESTION_PROBE.fullmatch(s)]
             # Вопрос может оказаться у края чанка после разбиения документа.
             # Для оценки темы требуются как минимум два остальных предложения.
             probe_idx = None
             context_tokens = None
             if self.config.question_probe and len(questions) == 1 and len(ss) >= 3:
                 candidate = questions[0]
-                prose = ss[:candidate] + ss[candidate + 1:]
-                if not any("?" in s for s in prose):
+                prose = prose_sents[:candidate] + prose_sents[candidate + 1:]
+                if not any("?" in s for s in prose) and not _embedded_question(chunks[ci].text, *spans[ci][candidate]):
                     surrounding = topic_tokens(" ".join(prose))
                     if len(surrounding) >= 12:
                         probe_idx, context_tokens = candidate, surrounding
-            for k, sent in enumerate(ss):
+            for k, sent in enumerate(prose_sents):
                 ctx_tok = context_tokens if k == probe_idx else None
                 for perm, score in offtopic_claims(sent, qtok, ctx_tok).items():
                     e = evs[ci][k]

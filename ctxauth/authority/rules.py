@@ -214,7 +214,7 @@ HUMAN_CUE = re.compile(
     r"\b(us|our|your own|your manager|your team|colleague|colleagues|employees?|staff|customers?|"
     r"applicants?|students?|visitors?|readers?|team|everyone)\b"
     r"|[\w.+-]+@[\w-]+\.[\w.]+"
-    r"|\b(нам|наш\w*|руководител\w*|сотрудник\w*|коллег\w*|команд\w*|клиент\w*)\b"
+    r"|\b(нам|наш\w*|руководител\w*|сотрудник\w*|коллег\w*|команд(?:а|ы|е|у|ой|ою|ам|ами|ах)?|клиент\w*)\b"
     r"|^\s*(hi|hello|hey|dear|уважаем\w*|привет|здравствуйте)\b",
     _F,
 )

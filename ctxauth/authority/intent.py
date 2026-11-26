@@ -40,8 +40,13 @@ INTENTS: tuple[IntentSpec, ...] = (
         frozenset({P.FORMAT}),
         frozenset(),
         (
-            r"\b(format|style|structure|lay ?out|write)\b.{0,40}\b(according to|following|per|as (in|described in)|using)\b.{0,30}\b(template|style ?guide|guidelines|document|example)\b",
-            r"\b(оформи|оформите|отформатируй|составь)\w*\b.{0,40}\b(по|согласно)\b.{0,20}\b(шаблон|образц|требовани|документ)",
+            r"^\s*(?:(?:can|could|would) you\s+)?(?:please[\s,]+)?"
+            r"(?:format|style|structure|lay ?out|write)\b.{0,40}"
+            r"\b(according to|following|per|as (in|described in)|using)\b.{0,30}\b(template|style ?guide|guidelines|document|example)\b",
+            r"^\s*(?:пожалуйста[\s,]+)?"
+            r"(?:(?:оформи|оформите|отформатируй|отформатируйте|составь|составьте)"
+            r"|(?:можешь|можете|не могли бы вы)\s+(?:оформить|отформатировать|составить))"
+            r"\b.{0,40}\b(по|согласно)\b.{0,20}\b(шаблон|образц|требовани|документ)",
         ),
         "Пользователь просит оформить ответ по правилам из документа: форма ответа делегирована.",
     ),
