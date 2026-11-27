@@ -29,9 +29,22 @@ _HIDDEN_SPAN_RE = re.compile(
 _TAG_RE = re.compile(r"<[^>]{1,200}>")
 
 
+def sentence_spans(text: str) -> list[tuple[int, int]]:
+    """Offsets of non-empty sentences in the original text."""
+    boundaries = [(m.start(), m.end()) for m in _SENT_RE.finditer(text)]
+    starts = [0] + [end for _, end in boundaries]
+    ends = [start for start, _ in boundaries] + [len(text)]
+    spans = []
+    for start, end in zip(starts, ends):
+        segment = text[start:end]
+        if segment.strip():
+            spans.append((start + len(segment) - len(segment.lstrip()),
+                          start + len(segment.rstrip())))
+    return spans
+
+
 def split_sentences(text: str) -> list[str]:
-    parts = [p.strip() for p in _SENT_RE.split(text)]
-    return [p for p in parts if p]
+    return [text[start:end] for start, end in sentence_spans(text)]
 
 
 def words(text: str) -> list[str]:

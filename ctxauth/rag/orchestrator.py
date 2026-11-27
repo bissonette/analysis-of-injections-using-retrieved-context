@@ -30,6 +30,7 @@ class RAGResult:
     filter_result: FilterResult | None
     post: PostprocessResult
     latency_ms: float = 0.0
+    blocked_tool_calls: list[ToolCall] = field(default_factory=list)
 
 
 @dataclass
@@ -64,15 +65,24 @@ class Orchestrator:
         else:
             kept = retrieved
         self.tools.reset()
-        user_msg = build_user_message(query, kept, self.tools.specs, spotlight=self.spotlight)
-        out = self.llm.generate(SYSTEM_PROMPT, user_msg, query=query, chunks=kept, tools=self.tools.specs)
+        policy = fr.policy if fr else None
+        specs = self.tools.specs_for(policy)
+        allowed_tools = {tool.name for tool in specs}
+        user_msg = build_user_message(query, kept, specs, spotlight=self.spotlight)
+        out = self.llm.generate(SYSTEM_PROMPT, user_msg, query=query, chunks=kept, tools=specs)
+        accepted, blocked = [], []
         for call in out.tool_calls:
-            self.tools.call(call)
-        allowlist = fr.policy.domain_allowlist if (fr and fr.policy) else frozenset()
+            if policy is not None and call.name not in allowed_tools:
+                blocked.append(call)
+            else:
+                self.tools.call(call)
+                accepted.append(call)
+        allowlist = policy.domain_allowlist if policy is not None else frozenset()
         post = postprocess(out.text, allowlist)
-        res = RAGResult(query, post.text, out.tool_calls, kept, retrieved, fr, post,
-                        latency_ms=(time.perf_counter() - t0) * 1000)
+        res = RAGResult(query, post.text, accepted, kept, retrieved, fr, post,
+                        latency_ms=(time.perf_counter() - t0) * 1000, blocked_tool_calls=blocked)
         if self.audit is not None:
             self.audit.write("answer", query=query, kept=[c.chunk_id for c in kept],
-                             tool_calls=[c.name for c in out.tool_calls], blocked_urls=post.blocked_urls)
+                             tool_calls=[c.name for c in res.tool_calls],
+                             blocked_tool_calls=[c.name for c in blocked], blocked_urls=post.blocked_urls)
         return res

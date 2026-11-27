@@ -167,7 +167,7 @@ INSTRUCTION_LIKE = re.compile(
 _COGNITIVE_VERBS = (
     r"write|compose|generate|produce|draft|tell|describe|explain|list|analy[sz]e|summari[sz]e|"
     r"translate|rewrite|convert|say|print|output|repeat|recommend|suggest|rate|calculate|compute|solve|"
-    r"remind|name|state|identify|define|mention|outline|clarify|elaborate|discuss|"
+    r"remind|name|state|identify|define|mention|outline|clarify|elaborate|discuss|provide|give|show|"
     r"напиши|составь|сгенерируй|расскажи|опиши|объясни|перечисли|проанализируй|просуммируй|"
     r"переведи|выведи|повтори|оцени|посоветуй|порекоменду\w*|вычисли|реши|напомни|назови|укажи|определи"
 )
@@ -177,11 +177,23 @@ _CONTENT_OBJECTS = (
     r"лозунг|слоган|кампани\w*|стихотворени\w*|статья|пост|описани\w*|сценари\w*"
 )
 COGNITIVE_TASK = re.compile(
-    rf"^\s*(please\s+|kindly\s+|now\s+|first\s+|then\s+|also\s+|пожалуйста[,\s]+|сначала\s+|теперь\s+)?"
+    rf"^\s*(?:(?:can|could|would) you\s+|i (?:want|need) you to\s+|не могли бы вы\s+)?"
+    rf"(?:(?:please|kindly|now|first|then|also|пожалуйста|сначала|теперь)[,\s]+)?"
     rf"(?:(?:{_COGNITIVE_VERBS})\b(?!\s+of\b)"
     rf"|(?:develop|design|create|make|craft|prepare|produce|build|compose|разработай|создай|подготовь)\b"
     rf".{{0,60}}\b(?:{_CONTENT_OBJECTS})\b)"
-    rf"|\b(i (want|need) you to|your (real )?task is|how (do|can) i)\b",
+    rf"|^\s*your (?:real )?task is\b",
+    _F,
+)
+# Для уже делегированной процедуры отдельный жанр результата — дополнительный сигнал.
+# Общие операции вроде «перечисли», «вычисли» и «объясни» могут быть шагами процедуры.
+STANDALONE_WRITING_TASK = re.compile(
+    r"^\s*(?:(?:please|kindly|now|first|then|also|пожалуйста|сначала|теперь)[,\s]+)?"
+    r"(?:write|compose|draft|create|generate|produce|напиши|составь|создай|сгенерируй)\s+"
+    r"(?:(?!(?:how|what|why|about|of|for|to|on|in|from|как|что|почему|про|для|по|на|об?|из)\b)"
+    r"[^\W\d_]+[\s-]+){0,3}"
+    r"(?:article|advertisement|blog(?:\s+post)?|essay|jingle|joke|limerick|newsletter|poem|slogan|song|story|tagline|"
+    r"стать[яюи]|стихотворени[ея]|рассказ|анекдот|песн[яюи]|слоган|лозунг|эссе|рассылк[ауи])\b",
     _F,
 )
 # Команды-действия «сделай в мире» (не текст): выдать доступ, отправить, оплатить, заказать…
@@ -213,7 +225,7 @@ HUMAN_CUE = re.compile(
     r"\b(us|our|your own|your manager|your team|colleague|colleagues|employees?|staff|customers?|"
     r"applicants?|students?|visitors?|readers?|team|everyone)\b"
     r"|[\w.+-]+@[\w-]+\.[\w.]+"
-    r"|\b(нам|наш\w*|руководител\w*|сотрудник\w*|коллег\w*|команд\w*|клиент\w*)\b"
+    r"|\b(нам|наш\w*|руководител\w*|сотрудник\w*|коллег\w*|команд(?:а|ы|е|у|ой|ою|ам|ами|ах)?|клиент\w*)\b"
     r"|^\s*(hi|hello|hey|dear|уважаем\w*|привет|здравствуйте)\b",
     _F,
 )
@@ -238,10 +250,14 @@ def is_instruction(sentence: str) -> bool:
 # частая форма тихой подмены задачи (SEP). Срабатывает строже, чем команды: вопрос должен быть
 # не по теме и запроса, И остального фрагмента.
 QUESTION_PROBE = re.compile(
-    r"^\s*(what|when|where|who|whose|which|why|how (many|much|long|old|far)|is there|are there|"
-    r"что|когда|где|кто|какой|какая|какие|сколько|почему)\b.{3,120}\?\s*$",
+    r"^\s*(what|when|where|who|whose|which|why|how|is there|are there|"
+    r"что|когда|где|кто|какой|какая|какие|сколько|почему|как|зачем)\b.{3,160}\?\s*$",
     _F,
 )
+_QUESTION_WORDS = frozenset(words(
+    "what when where who whose which why how many much long old far does did can could would should there "
+    "что когда где кто какой какая какие сколько почему как зачем"
+))
 
 
 def offtopic_claims(sentence: str, query_tokens: set[str],
@@ -251,7 +267,6 @@ def offtopic_claims(sentence: str, query_tokens: set[str],
 
     Возвращает {Permission: score}:
       * когнитивная задача-вывод (write/analyze/tell/…) → TASK 0.6;
-      * команда-действие (grant/send/pay/order/…)       → ACTIONS 0.6;
       * вопрос-проба (один чужой вопрос)                → TASK 0.55 (нужны context_tokens).
     Адресаты-люди, нумерованные шаги и темы, совпадающие с запросом, отсеиваются.
     Проверка «команда в данных, а не в процедурном документе» — на уровне фрагмента (контроллер).
@@ -266,14 +281,14 @@ def offtopic_claims(sentence: str, query_tokens: set[str],
     st = topic_tokens(s)
     if len(st) < 2:
         return {}
-    if len(st & query_tokens) / len(st) > max_overlap:
-        return {}
     out: dict = {}
-    if is_cog:
+    if is_cog and len(st & query_tokens) / len(st) <= max_overlap:
         out[P.TASK] = 0.6       # когнитивная задача не по теме запроса → подмена задачи
-    if is_q and not out and context_tokens is not None \
-            and len(st & context_tokens) / len(st) <= max_overlap:
-        out[P.TASK] = 0.55      # вопрос-проба: дополнительно «не по теме фрагмента»
+    if is_q and not out and context_tokens is not None:
+        topic = st - _QUESTION_WORDS
+        # Совпадение значимого слова с запросом или прозой сохраняет вопрос.
+        if len(topic) >= 2 and not topic.intersection(query_tokens | context_tokens):
+            out[P.TASK] = 0.55
     return out
 
 

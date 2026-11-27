@@ -13,7 +13,7 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from ..text import domain_allowed, normalize, split_sentences, url_domain
+from ..text import domain_allowed, normalize, sentence_spans, url_domain
 from ..tools_meta import EXTERNAL_TOOLS
 from ..types import (CONTROLLED, Action, AuthorityProfile, Chunk, ChunkDecision, FilterResult,
                      RequestPolicy, SentenceEvidence, Violation)
@@ -30,6 +30,32 @@ DEFERRED_REF = re.compile(
     re.I,
 )
 _HIDDEN = {"zero_width", "html_comment", "hidden_markup", "base64", "homoglyph", "leet"}
+_NUMBERED_HEADING = re.compile(r"[ \t]*\d{1,3}[.)][ \t]+")
+_PROSE_QUOTE = re.compile(r'«[^»]*»|“[^”]*”|"[^"]*"|\x27\x27.*?\x27\x27')
+_EXPAND_LABEL = "show more "
+_PROCEDURE_WORD = re.compile(
+    r"(?:please|follow|execute|carry|perform|run|apply|complete|steps?|instructions?|procedure|"
+    r"runbook|checklist|playbook|ticket|document|page|says|asks|requires|described|"
+    r"пожалуйста|выполни\w*|проделай\w*|исполни\w*|шаг\w*|инструкц\w*|процедур\w*|"
+    r"регламент\w*|заявк\w*|чеклист\w*|документ\w*|описан\w*)",
+    re.I,
+)
+
+
+def _embedded_question(text: str, start: int, end: int) -> bool:
+    """Есть ли у вопроса роль заголовка списка или части цитируемой речи."""
+    line_start = text.rfind("\n", 0, start) + 1
+    if _NUMBERED_HEADING.fullmatch(text[line_start:start]):
+        return True
+    marker = text.rfind("[PAR]", line_start, start)
+    paragraph_start = marker + len("[PAR]") if marker >= 0 else line_start
+    paragraph_end = min(
+        (i for i in (text.find("\n", end), text.find("[PAR]", end), len(text)) if i >= 0)
+    )
+    return any(
+        paragraph_start + match.start() + 2 < start and end < paragraph_start + match.end() - 2
+        for match in _PROSE_QUOTE.finditer(text[paragraph_start:paragraph_end])
+    )
 
 
 @dataclass
@@ -42,8 +68,7 @@ class ControllerConfig:
     block_on_hidden: bool = True  # нарушение в скрытом/обфусцированном тексте → BLOCK фрагмента
     cross_chunk: bool = True  # анализ инъекций, разнесённых по нескольким фрагментам
     offtopic_task: bool = True  # детектор тихой подмены задачи (не по теме команда)
-    question_probe: bool = False  # считать одиночный чужой вопрос в данных подменой задачи
-    # (поднимает полноту на вопросах-вставках, но даёт ложные на веб-текстах с чужими вопросами)
+    question_probe: bool = True  # проверять одиночный вопрос внутри фактического текста
     proc_doc_ratio: float = 0.4  # доля команд, выше которой фрагмент считается процедурным (не трогаем)
     request_dependent: bool = True  # False → не зависящий от запроса набор разрешений (абляция)
 
@@ -73,8 +98,10 @@ class ContextAuthorityController:
                 continue
             if not policy.allows(p):
                 out.append(Violation(p, s, f"{p.code} не делегировано запросом ({policy.intent})", ev.text))
+            elif p == P.TASK and "outside_procedure_scope" in ev.flags:
+                out.append(Violation(p, s, "Новая задача вне области запрошенной процедуры", ev.text))
             elif p == P.ACTIONS:
-                bad = [t for t in ev.tools if t not in policy.tool_scope or t in EXTERNAL_TOOLS]
+                bad = [t for t in ev.tools if not policy.allows_tool(t, external=t in EXTERNAL_TOOLS)]
                 if bad:
                     out.append(Violation(p, s, f"инструменты вне области делегирования: {', '.join(bad)}", ev.text))
             elif p == P.FORMAT:
@@ -87,7 +114,8 @@ class ContextAuthorityController:
     def filter(self, query: str, chunks: list[Chunk], intent: str | None = None) -> FilterResult:
         t0 = time.perf_counter()
         policy = self.policy_for(query, intent)
-        sents = [split_sentences(c.text) for c in chunks]
+        spans = [sentence_spans(c.text) for c in chunks]
+        sents = [[c.text[start:end] for start, end in offsets] for c, offsets in zip(chunks, spans)]
         flat = [s for ss in sents for s in ss]
         flat_ev = self.analyzer.score_sentences(flat)
         evs, i = [], 0
@@ -95,13 +123,15 @@ class ContextAuthorityController:
             evs.append(flat_ev[i:i + len(ss)])
             i += len(ss)
         if self.config.offtopic_task:
-            self._offtopic_task(query, chunks, sents, evs)
+            self._offtopic_task(query, chunks, spans, sents, evs)
+            if policy.intent == "follow_procedure" and policy.allows(P.TASK):
+                self._check_procedure_scope(query, sents, evs)
         viol: list[list[list[Violation]]] = [[self.violations_of(e, policy) for e in ce] for ce in evs]
         if self.config.cross_chunk:
             self._cross_chunk(chunks, sents, evs, viol, policy)
 
         decisions = []
-        for c, ss, ce, cv in zip(chunks, sents, evs, viol):
+        for c, offsets, ce, cv in zip(chunks, spans, evs, viol):
             profile = AuthorityProfile(
                 claimed={p: max((e.scores.get(p, 0.0) for e in ce), default=0.0) for p in CONTROLLED},
                 sentences=ce,
@@ -111,7 +141,7 @@ class ContextAuthorityController:
                 decisions.append(ChunkDecision(c, Action.PASS, profile, []))
                 continue
             bad_idx = {k for k, vs in enumerate(cv) if vs}
-            ratio = len(bad_idx) / max(1, len(ss))
+            ratio = len(bad_idx) / len(offsets)
             # скрытую разметку ищем и на уровне всего фрагмента: разбиение на предложения
             # может разорвать <!-- ... --> между предложениями и потерять флаг.
             chunk_hidden = bool(_HIDDEN & set(normalize(c.text).flags))
@@ -120,9 +150,15 @@ class ContextAuthorityController:
                     or (hidden and self.config.block_on_hidden)):
                 decisions.append(ChunkDecision(c, Action.BLOCK, profile, all_v))
             else:
-                kept = [s if k not in bad_idx else REMOVED_MARK for k, s in enumerate(ss)]
-                # схлопываем подряд идущие маркеры
-                text = re.sub(rf"(\s*{re.escape(REMOVED_MARK)})+", " " + REMOVED_MARK, " ".join(kept)).strip()
+                parts = []
+                cursor = 0
+                for k in sorted(bad_idx):
+                    start, end = offsets[k]
+                    if k - 1 not in bad_idx:
+                        parts.extend((c.text[cursor:start], REMOVED_MARK))
+                    cursor = end
+                parts.append(c.text[cursor:])
+                text = "".join(parts)
                 decisions.append(ChunkDecision(c, Action.SANITIZE, profile, all_v, sanitized_text=text))
         res = FilterResult(policy, decisions, latency_ms=(time.perf_counter() - t0) * 1000)
         if self.audit is not None:
@@ -133,15 +169,47 @@ class ContextAuthorityController:
                                      violations=[(v.permission.code, round(v.score, 3), v.reason) for v in d.violations])
         return res
 
-    def _offtopic_task(self, query, chunks, sents, evs) -> None:
-        """Притязания «не по теме запроса» в фактических данных: тихая подмена задачи
-        (когнитивная команда), команда-действие (grant/send/pay/…) и вопрос-проба.
+    def _check_procedure_scope(self, query: str, sents: list[list[str]],
+                               evs: list[list[SentenceEvidence]]) -> None:
+        """Ищет отдельное поручение вне темы явно запрошенной процедуры."""
+        from .rules import (INSTRUCTION_LIKE, STANDALONE_WRITING_TASK, is_instruction,
+                            offtopic_claims, topic_tokens)
+
+        subject = {word for word in topic_tokens(query) if not _PROCEDURE_WORD.fullmatch(word)}
+        if len(subject) < 2:
+            return
+        for sentences, evidence in zip(sents, evs):
+            steps = [is_instruction(sentence) for sentence in sentences]
+            topics = [topic_tokens(INSTRUCTION_LIKE.sub("", sentence, count=1) if is_step else sentence)
+                      for sentence, is_step in zip(sentences, steps)]
+            background = set().union(*(words for words, is_step in zip(topics, steps) if not is_step))
+            supported_subject = subject & background
+            # Нужны подтвержденная тема в описании и хотя бы один шаг этой процедуры.
+            if len(supported_subject) < 2:
+                continue
+            linked_steps = [words for words, is_step in zip(topics, steps)
+                            if is_step and words & supported_subject]
+            if not linked_steps:
+                continue
+            relevant = (subject | background).union(*linked_steps)
+            for sentence, words, is_step, ev in zip(sentences, topics, steps, evidence):
+                # Несовпадения слов недостаточно: шаг может использовать другие термины.
+                if (not is_step or len(words) < 3 or not words.isdisjoint(relevant)
+                        or not STANDALONE_WRITING_TASK.match(sentence)):
+                    continue
+                score = offtopic_claims(sentence, relevant).get(P.TASK)
+                if score is not None:
+                    ev.scores[P.TASK] = max(ev.scores.get(P.TASK, 0.0), score)
+                    ev.flags = sorted(set(ev.flags) | {"outside_procedure_scope"})
+
+    def _offtopic_task(self, query, chunks, spans, sents, evs) -> None:
+        """Ищет подмену задачи в прозе и команды внутри структурированных полей.
 
         Процедурные документы (регламенты, рецепты, инструкции) не затрагиваются: в них почти
         каждое предложение — команда, поэтому при высокой доле команд фрагмент считается
         процедурным и пропускается. Срабатывание — только когда команда в меньшинстве среди
         неинструктивного текста (признак инъекции в данных)."""
-        from .rules import QUESTION_PROBE, is_instruction, offtopic_claims, topic_tokens
+        from .rules import QUESTION_PROBE, is_instruction, offtopic_claims, quoted_request_claims, topic_tokens
         qtok = topic_tokens(query)
         for ci, ss in enumerate(sents):
             if not ss:
@@ -151,20 +219,34 @@ class ContextAuthorityController:
             # одной командой в фактическом тексте процедурным НЕ считается).
             if instr_count >= 3 and instr_count / len(ss) > self.config.proc_doc_ratio:
                 continue
-            chunk_tok = topic_tokens(chunks[ci].text)
-            # вопрос-проба — это ОДИН чужой вопрос в прозе; серия вопросов (риторика, FAQ,
-            # повествование) — легитимный стиль документа, вопросы в ней не трогаем.
-            q_count = sum(bool(QUESTION_PROBE.match(s.strip())) for s in ss)
-            use_q = self.config.question_probe and q_count == 1
-            for k, sent in enumerate(ss):
-                ctx_tok = (chunk_tok - topic_tokens(sent)) if use_q else None
+            # В выгрузках веб-страниц подпись кнопки может слиться с текстом вопроса.
+            # Прочие императивы с «show more» оцениваются в исходном виде.
+            prose_sents = []
+            for sentence in ss:
+                remainder = sentence[len(_EXPAND_LABEL):]
+                if sentence.lower().startswith(_EXPAND_LABEL) and QUESTION_PROBE.fullmatch(remainder):
+                    sentence = remainder.lstrip()
+                prose_sents.append(sentence)
+            questions = [k for k, s in enumerate(prose_sents) if QUESTION_PROBE.fullmatch(s)]
+            # Вопрос может оказаться у края чанка после разбиения документа.
+            # Для оценки темы требуются как минимум два остальных предложения.
+            probe_idx = None
+            context_tokens = None
+            if self.config.question_probe and len(questions) == 1 and len(ss) >= 3:
+                candidate = questions[0]
+                prose = prose_sents[:candidate] + prose_sents[candidate + 1:]
+                if not any("?" in s for s in prose) and not _embedded_question(chunks[ci].text, *spans[ci][candidate]):
+                    surrounding = topic_tokens(" ".join(prose))
+                    if len(surrounding) >= 12:
+                        probe_idx, context_tokens = candidate, surrounding
+            for k, sent in enumerate(prose_sents):
+                ctx_tok = context_tokens if k == probe_idx else None
                 for perm, score in offtopic_claims(sent, qtok, ctx_tok).items():
                     e = evs[ci][k]
                     if score > e.scores.get(perm, 0.0):
                         e.scores[perm] = score
                         e.flags = sorted(set(e.flags) | {"offtopic_instruction"})
             # просьбы-команды в закавыченных полях структурированных данных (ответы инструментов)
-            from .rules import quoted_request_claims
             for span, claims in quoted_request_claims(chunks[ci].text, qtok):
                 probe = span[:40]
                 idx = next((k for k, s in enumerate(ss) if probe in s), 0)

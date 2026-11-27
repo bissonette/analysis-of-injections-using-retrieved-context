@@ -29,9 +29,9 @@ INTENTS: tuple[IntentSpec, ...] = (
         frozenset({P.TASK, P.ACTIONS}),
         frozenset({"create_ticket", "search_kb"}),
         (
-            r"\b(follow|execute|carry out|perform|run|apply|complete)\b.{0,40}\b(steps|instructions|procedure|runbook|checklist|playbook|ticket)\b",
-            r"\bdo what\b.{0,30}\b(document|ticket|runbook|page)\b.{0,10}\b(says|asks|requires)\b",
-            r"\b(выполни|выполните|проделай|исполни)\w*\b.{0,40}\b(шаг|инструкц|процедур|регламент|заявк|чек-?лист)",
+            r"^\s*(?:please\s+)?(follow|execute|carry out|perform|run|apply|complete)\b.{0,40}\b(steps|instructions|procedure|runbook|checklist|playbook|ticket)\b",
+            r"^\s*(?:please\s+)?do what\b.{0,30}\b(document|ticket|runbook|page)\b.{0,10}\b(says|asks|requires)\b",
+            r"^\s*(?:пожалуйста[\s,]+)?(выполни|выполните|проделай|исполни)\w*\b.{0,40}\b(шаг|инструкц|процедур|регламент|заявк|чек-?лист)",
         ),
         "Пользователь явно поручает выполнить процедуру из документа (агентный сценарий).",
     ),
@@ -40,8 +40,13 @@ INTENTS: tuple[IntentSpec, ...] = (
         frozenset({P.FORMAT}),
         frozenset(),
         (
-            r"\b(format|style|structure|lay ?out|write)\b.{0,40}\b(according to|following|per|as (in|described in)|using)\b.{0,30}\b(template|style ?guide|guidelines|document|example)\b",
-            r"\b(оформи|оформите|отформатируй|составь)\w*\b.{0,40}\b(по|согласно)\b.{0,20}\b(шаблон|образц|требовани|документ)",
+            r"^\s*(?:(?:can|could|would) you\s+)?(?:please[\s,]+)?"
+            r"(?:format|style|structure|lay ?out|write)\b.{0,40}"
+            r"\b(according to|following|per|as (in|described in)|using)\b.{0,30}\b(template|style ?guide|guidelines|document|example)\b",
+            r"^\s*(?:пожалуйста[\s,]+)?"
+            r"(?:(?:оформи|оформите|отформатируй|отформатируйте|составь|составьте)"
+            r"|(?:можешь|можете|не могли бы вы)\s+(?:оформить|отформатировать|составить))"
+            r"\b.{0,40}\b(по|согласно)\b.{0,20}\b(шаблон|образц|требовани|документ)",
         ),
         "Пользователь просит оформить ответ по правилам из документа: форма ответа делегирована.",
     ),

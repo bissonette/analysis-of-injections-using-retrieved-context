@@ -130,6 +130,9 @@ class RequestPolicy:
     def allows(self, p: Permission) -> bool:
         return p == Permission.CONTENT or p in self.allowed
 
+    def allows_tool(self, name: str, *, external: bool = False) -> bool:
+        return self.allows(Permission.ACTIONS) and name in self.tool_scope and not external
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "intent": self.intent,
