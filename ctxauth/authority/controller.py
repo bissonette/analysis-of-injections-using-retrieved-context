@@ -33,6 +33,13 @@ _HIDDEN = {"zero_width", "html_comment", "hidden_markup", "base64", "homoglyph",
 _NUMBERED_HEADING = re.compile(r"[ \t]*\d{1,3}[.)][ \t]+")
 _PROSE_QUOTE = re.compile(r'«[^»]*»|“[^”]*”|"[^"]*"|\x27\x27.*?\x27\x27')
 _EXPAND_LABEL = "show more "
+_PROCEDURE_WORD = re.compile(
+    r"(?:please|follow|execute|carry|perform|run|apply|complete|steps?|instructions?|procedure|"
+    r"runbook|checklist|playbook|ticket|document|page|says|asks|requires|described|"
+    r"пожалуйста|выполни\w*|проделай\w*|исполни\w*|шаг\w*|инструкц\w*|процедур\w*|"
+    r"регламент\w*|заявк\w*|чеклист\w*|документ\w*|описан\w*)",
+    re.I,
+)
 
 
 def _embedded_question(text: str, start: int, end: int) -> bool:
@@ -91,6 +98,8 @@ class ContextAuthorityController:
                 continue
             if not policy.allows(p):
                 out.append(Violation(p, s, f"{p.code} не делегировано запросом ({policy.intent})", ev.text))
+            elif p == P.TASK and "outside_procedure_scope" in ev.flags:
+                out.append(Violation(p, s, "Новая задача вне области запрошенной процедуры", ev.text))
             elif p == P.ACTIONS:
                 bad = [t for t in ev.tools if not policy.allows_tool(t, external=t in EXTERNAL_TOOLS)]
                 if bad:
@@ -115,6 +124,8 @@ class ContextAuthorityController:
             i += len(ss)
         if self.config.offtopic_task:
             self._offtopic_task(query, chunks, spans, sents, evs)
+            if policy.intent == "follow_procedure" and policy.allows(P.TASK):
+                self._check_procedure_scope(query, sents, evs)
         viol: list[list[list[Violation]]] = [[self.violations_of(e, policy) for e in ce] for ce in evs]
         if self.config.cross_chunk:
             self._cross_chunk(chunks, sents, evs, viol, policy)
@@ -157,6 +168,37 @@ class ContextAuthorityController:
                                      action=d.action.value, profile=d.profile.as_codes(),
                                      violations=[(v.permission.code, round(v.score, 3), v.reason) for v in d.violations])
         return res
+
+    def _check_procedure_scope(self, query: str, sents: list[list[str]],
+                               evs: list[list[SentenceEvidence]]) -> None:
+        """Ищет отдельное поручение вне темы явно запрошенной процедуры."""
+        from .rules import INSTRUCTION_LIKE, is_instruction, offtopic_claims, topic_tokens
+
+        subject = {word for word in topic_tokens(query) if not _PROCEDURE_WORD.fullmatch(word)}
+        if len(subject) < 2:
+            return
+        for sentences, evidence in zip(sents, evs):
+            steps = [is_instruction(sentence) for sentence in sentences]
+            topics = [topic_tokens(INSTRUCTION_LIKE.sub("", sentence, count=1) if is_step else sentence)
+                      for sentence, is_step in zip(sentences, steps)]
+            background = set().union(*(words for words, is_step in zip(topics, steps) if not is_step))
+            supported_subject = subject & background
+            # Нужны подтвержденная тема в описании и хотя бы один шаг этой процедуры.
+            if len(supported_subject) < 2:
+                continue
+            linked_steps = [words for words, is_step in zip(topics, steps)
+                            if is_step and words & supported_subject]
+            if not linked_steps:
+                continue
+            relevant = (subject | background).union(*linked_steps)
+            for sentence, words, is_step, ev in zip(sentences, topics, steps, evidence):
+                # Короткий шаг может ссылаться на предыдущий без повторения темы.
+                if not is_step or len(words) < 3 or not words.isdisjoint(relevant):
+                    continue
+                score = offtopic_claims(sentence, relevant).get(P.TASK)
+                if score is not None:
+                    ev.scores[P.TASK] = max(ev.scores.get(P.TASK, 0.0), score)
+                    ev.flags = sorted(set(ev.flags) | {"outside_procedure_scope"})
 
     def _offtopic_task(self, query, chunks, spans, sents, evs) -> None:
         """Ищет подмену задачи в прозе и команды внутри структурированных полей.
