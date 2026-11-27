@@ -172,7 +172,8 @@ class ContextAuthorityController:
     def _check_procedure_scope(self, query: str, sents: list[list[str]],
                                evs: list[list[SentenceEvidence]]) -> None:
         """Ищет отдельное поручение вне темы явно запрошенной процедуры."""
-        from .rules import INSTRUCTION_LIKE, is_instruction, offtopic_claims, topic_tokens
+        from .rules import (INSTRUCTION_LIKE, STANDALONE_WRITING_TASK, is_instruction,
+                            offtopic_claims, topic_tokens)
 
         subject = {word for word in topic_tokens(query) if not _PROCEDURE_WORD.fullmatch(word)}
         if len(subject) < 2:
@@ -192,8 +193,9 @@ class ContextAuthorityController:
                 continue
             relevant = (subject | background).union(*linked_steps)
             for sentence, words, is_step, ev in zip(sentences, topics, steps, evidence):
-                # Короткий шаг может ссылаться на предыдущий без повторения темы.
-                if not is_step or len(words) < 3 or not words.isdisjoint(relevant):
+                # Несовпадения слов недостаточно: шаг может использовать другие термины.
+                if (not is_step or len(words) < 3 or not words.isdisjoint(relevant)
+                        or not STANDALONE_WRITING_TASK.match(sentence)):
                     continue
                 score = offtopic_claims(sentence, relevant).get(P.TASK)
                 if score is not None:
